@@ -17,5 +17,5 @@ fn rocket() -> _ {
             api::upload
         ])
         // Anything under `public_site/` is  always available under /
-        .mount("/", FileServer::from(relative!("../public_site")))
+        .mount("/", FileServer::from(relative!("public_site")))
 }
