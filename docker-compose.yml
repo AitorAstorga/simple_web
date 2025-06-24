@@ -1,0 +1,15 @@
+services:
+  simple_web:
+    container_name: simple_web
+    image: ghcr.io/aitorastorga/simple_web:latest
+    environment:
+      - ROCKET_ADDRESS=0.0.0.0
+      - ROCKET_PORT=8000
+      - ROCKET_ENV=production
+      - ADMIN_TOKEN=<YOUR_TOKEN>
+    ports:
+      - <YOUR_PORT>:8000
+      - <YOUR_PORT>:80
+    volumes:
+      - ./public_site:/app/backend_simple_web/public_site
+    restart: unless-stopped
