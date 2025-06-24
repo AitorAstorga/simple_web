@@ -10,6 +10,10 @@
     /* extra helpers -------------------------------------------------- */
     --red-600: #dc2626;
     --surface-hov: #262626;
+
+    --editor-font:  "Fira Code", Menlo, monospace;
+    --editor-size: 18px;
+    --editor-pad:  .5rem;
 }
 
 /* Typography & base reset -------------------------------------- */
@@ -94,6 +98,10 @@ svg {
     color: var(--text-main);
 }
 
+*:focus {
+    caret-color: var(--text-main);
+}
+
 textarea:focus-visible {
   outline: 2px solid var(--purple);
   border-radius: 3px;
@@ -166,8 +174,12 @@ textarea:focus-visible {
     height: 100%;
 }
 
+.h-90 {
+    height: 90%;
+}
+
 .h-screen {
-    height: 100vh;
+    height: calc(100vh - 64px - 16px - 16px - 1px);
 }
 
 .w-full {
@@ -276,6 +288,59 @@ textarea {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
     padding-block: 0.5rem;
 }
+
+/* container keeps the layers stacked */
+.editor-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    font-family: var(--editor-font);
+    font-size:   var(--editor-size);
+    line-height: 1.45;             /* keep lines tall enough for most fonts */
+    margin: 0;
+}
+
+/* ────────── colourised *copy* ────────── */
+.editor-highlight {
+    position: absolute;
+    inset: 0;                      /* full stretch */
+    padding: var(--editor-pad);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    tab-size: 4;                   /* keep tabs in sync */
+    pointer-events: none;          /* clicks fall through */
+    user-select: none;             /* don’t select this layer */
+    overflow: hidden;              /* textarea handles scrolling */
+    margin: 0;
+}
+
+/* ────────── real <textarea> ────────── */
+.editor-input {
+    position: absolute;
+    inset: 0;
+    padding: var(--editor-pad);
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: transparent;
+    color: transparent;            /* hide glyphs */
+    font: inherit;                 /* inherits family, size, line-height */
+    resize: vertical;
+    overflow: auto;
+    margin: 0;                     /* remove UA-default margin */
+}
+.editor-input:focus { outline: none; }
+
+/* ────────── syntax colours ────────── */
+.kw      { color: #d73a49; }  /* keyword  */
+.string  { color: #032f62; }
+.attr    { color:#795e26; }   /* attribute name  */
+.comment { color:#6a737d; }   /* already there – keep for completeness */
+.string  { color:#032f62; }   /* already there */
+.tag     { color:#22863a; }   /* already there */
+
+/* optional tweak – make angle brackets faint so tags pop */
+.editor-highlight::selection { background: #b3d4fc; }
+
 
 /* Scrollbar (webkit) ---------------------------------------------- */
 aside.overflow-y-auto::-webkit-scrollbar {

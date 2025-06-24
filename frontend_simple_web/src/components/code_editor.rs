@@ -5,6 +5,8 @@ use urlencoding::encode;
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
+use crate::components::code_editor_textarea::CodeEditorTextarea;
+
 const AUTH: &str = "secret123";
 
 #[derive(Properties, PartialEq)]
@@ -161,8 +163,11 @@ pub fn code_editor(props: &Props) -> Html {
 
             /* editor pane */
             { if sel_path.is_some() {
-                html! { <textarea class="flex-grow font-mono w-full border rounded p-2"
-                                  value={(*text).clone()} oninput={oninput}/> }
+                html! {
+                    <CodeEditorTextarea
+                        value={(*text).clone()}
+                        oninput={oninput.clone()} />
+                }
             } else {
                 html! { <h2 class="card">{"Create or select a file to start editing."}</h2> }
             }}
