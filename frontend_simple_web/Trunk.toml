@@ -1,6 +1,7 @@
+# Proxy for local testing
 [[proxies]]
 backend  = "http://localhost:8000/api/"
 rewrite  = "/api/"
 
 [serve]
-port = 80
+port = 8080

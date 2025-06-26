@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 rocket = { version = "0.5", features = ["json"] }
+rocket_cors = "0.6.0"
 serde = { version = "1", features = ["derive"] }
 tokio = { version = "1", features = ["fs", "macros", "rt-multi-thread"] }
 urlencoding = "2.1.3"

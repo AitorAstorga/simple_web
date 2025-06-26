@@ -7,6 +7,8 @@ services:
       - ROCKET_PORT=8000
       - ROCKET_ENV=production
       - ADMIN_TOKEN=<YOUR_TOKEN>
+      - API_URL=<YOUR_API_URL>
+      - EDITOR_URL=<YOUR_EDITOR_URL>
     ports:
       - <YOUR_PORT>:8000
       - <YOUR_PORT>:80

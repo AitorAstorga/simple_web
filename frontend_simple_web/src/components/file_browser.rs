@@ -30,7 +30,8 @@ pub fn file_browser(props: &Props) -> Html {
         let cwd = cwd.clone();
         let entries = entries.clone();
         use_effect_with(cwd.clone(), move |dir| {
-            let url = if dir.is_empty() { "/api/files".into() }
+            let api_url = std::env::var("API_URL").unwrap_or_default();
+            let url = if dir.is_empty() { format!("{api_url}/api/files").into() }
                       else { format!("/api/files?path={}", encode(dir)) };
 
             spawn_local(async move {
@@ -54,14 +55,16 @@ pub fn file_browser(props: &Props) -> Html {
     }
     async fn api_move(from: &str, to: &str) {
         let body = serde_json::json!({ "from": from, "to": to });
-        let _ = Request::post("/api/move")
+        let api_url = std::env::var("API_URL").unwrap_or_default();
+        let _ = Request::post(&format!("{api_url}/api/move"))
             .header("Authorization", AUTH)
             .header("Content-Type", "application/json")
             .body(serde_json::to_string(&body).unwrap())
             .expect("req").send().await;
     }
     async fn api_delete(path: &str) {
-        let url = format!("/api/file?path={}", encode(path));
+        let api_url = std::env::var("API_URL").unwrap_or_default();
+        let url = format!("{api_url}/api/file?path={}", encode(path));
         let _ = Request::delete(&url).header("Authorization", AUTH).send().await;
     }
     fn reload() { let _ = web_sys::window().map(|w| w.location().reload()); }
