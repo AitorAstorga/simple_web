@@ -1,3 +1,4 @@
+mod api;
 mod components;
 mod pages;
 mod router;
@@ -9,9 +10,9 @@ use yew_router::prelude::*;
 #[function_component(App)]
 fn app() -> Html {
     html! {
-        <BrowserRouter>
-            <AppRouter />
-        </BrowserRouter>
+    <BrowserRouter>
+        <AppRouter />
+    </BrowserRouter>
     }
 }
 

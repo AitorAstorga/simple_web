@@ -9,7 +9,7 @@ export ADMIN_TOKEN=secret123
 | ----------------- | ---------- | ---------------- | --------------- | ----------------------------------------------------------------------------------- |
 | **`/api/files`**  | **GET**    | –                | `path=<PATH>`   | –                                                                                   |
 | **`/api/file`**   | **GET**    | `path=<PATH>`    | –               | –                                                                                   |
-| **`/api/file`**   | **POST**   | –                | –               | JSON `{"path": <PATH>, "content": <CONTENT>}`                                       |
+| **`/api/file`**   | **POST**   | `path=<PATH>`    | –               | JSON `{"content": <CONTENT>}`                                                       |
 | **`/api/file`**   | **DELETE** | `path=<PATH>`    | –               | –                                                                                   |
 | **`/api/move`**   | **POST**   | –                | –               | JSON `{"from": <SRC>, "to": <DST>}`                                                 |
 | **`/api/upload`** | **POST**   | –                | –               | **multipart/form-data**<br>`files=@<LOCAL>;filename=<PATH>` (repeat for every file) |
@@ -39,9 +39,11 @@ curl -H "Authorization: secret123" "http://localhost:8000/api/file?path=index.ht
 
 ## Save / create a file
 ```bash
-curl -X POST -H "Authorization: secret123" -H "Content-Type: application/json" \
-     -d '{"path":"js/app.js","content":"console.log(\"hi\")"}' \
-     http://localhost:8000/api/file
+curl -X POST \
+     -H "Authorization: secret123" \
+     -H "Content-Type: application/json" \
+     -d '{"content":"console.log(\"hi\")"}' \
+     "http://localhost:8000/api/file?path=js/app.js"
 ```
 
 ## Delete a file

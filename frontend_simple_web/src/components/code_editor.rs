@@ -1,13 +1,10 @@
 // frontend_simple_web/src/components/code_editor.rs
-use gloo::{console::error, net::http::Request};
-use serde_json::json;
-use urlencoding::encode;
+use gloo::console::error;
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
+use crate::api::file::{api_move, get_api_file, post_api_file, api_delete};
 use crate::components::code_editor_textarea::CodeEditorTextarea;
-
-const AUTH: &str = "secret123";
 
 #[derive(Properties, PartialEq)]
 pub struct Props {
@@ -23,92 +20,67 @@ pub fn code_editor(props: &Props) -> Html {
     /* -- load file when path changes ------------------------------------ */
     {
         let text = text.clone();
-        use_effect_with(sel_path.clone(), move |maybe| {
-            if let Some(p) = maybe {
-                let api_url = std::env::var("API_URL").unwrap_or_default();
-                let url = format!("{api_url}/api/file?path={}", encode(p));
-                let text = text.clone();
-                spawn_local(async move {
-                    if let Ok(resp) = Request::get(&url).header("Authorization", AUTH).send().await {
-                        match resp.text().await {
-                            Ok(body) => text.set(body),
-                            Err(e)   => error!(format!("body err: {e:?}")),
+        use_effect_with(sel_path.clone(), {
+            let text = text.clone();
+            move |maybe_path| {
+                // pull an owned PathBuf out of the Option, rather than borrowing
+                if let Some(path) = maybe_path.clone() {
+                    let text = text.clone();
+                    spawn_local(async move {
+                        if let Ok(resp) = get_api_file(&path).await {
+                            match resp.text().await {
+                                Ok(body) => text.set(body),
+                                Err(e)   => error!(format!("body err: {:?}", e)),
+                            }
                         }
-                    }
-                });
-            } else {
-                text.set(String::new());
+                    });
+                } else {
+                    text.set(String::new());
+                }
+                move || {}
             }
-            || ()
         });
-    }
 
-    /* -- thin async helpers --------------------------------------------- */
-    async fn api_post(path: &str, content: &str) {
-        let body = json!({ "path": path, "content": content });
-        let api_url = std::env::var("API_URL").unwrap_or_default();
-        let _ = Request::post(&format!("{api_url}/api/file"))
-            .header("Authorization", AUTH)
-            .header("Content-Type", "application/json")
-            .body(serde_json::to_string(&body).unwrap())
-            .expect("req").send().await;
     }
-    async fn api_delete(path: &str) {
-        let api_url = std::env::var("API_URL").unwrap_or_default();
-        let url = format!("{api_url}/api/file?path={}", encode(path));
-        let _ = Request::delete(&url).header("Authorization", AUTH).send().await;
-    }
-    async fn api_move(from: &str, to: &str) {
-        let body = json!({ "from": from, "to": to });
-        let api_url = std::env::var("API_URL").unwrap_or_default();
-        let _ = Request::post(&format!("{api_url}/api/move"))
-            .header("Authorization", AUTH)
-            .header("Content-Type", "application/json")
-            .body(serde_json::to_string(&body).unwrap())
-            .expect("req").send().await;
-    }
-    fn prompt(msg: &str)  -> Option<String> { web_sys::window()?.prompt_with_message(msg).ok()? }
-    fn confirm(msg: &str) -> bool { web_sys::window().map(|w| w.confirm_with_message(msg).unwrap_or(false)).unwrap_or(false) }
-    fn reload() { let _ = web_sys::window().map(|w| w.location().reload()); }
 
     /* -- textarea on-input ---------------------------------------------- */
     let oninput = {
         let text = text.clone();
         Callback::from(move |e: InputEvent| {
-            let el: web_sys::HtmlTextAreaElement = e.target_unchecked_into();
-            text.set(el.value());
+            let txt: web_sys::HtmlTextAreaElement = e.target_unchecked_into();
+            text.set(txt.value());
         })
     };
 
     /* -- Save / New File button ----------------------------------------- */
     let onsave = {
-        let path_opt  = sel_path.clone();
-        let content   = (*text).clone();
+        let sel_path = sel_path.clone();
+        let text = (*text).clone();
         Callback::from(move |_| {
-            let p_opt = path_opt.clone();
-            let c     = content.clone();
-            spawn_local(async move {
-                match p_opt {
-                    Some(p) => api_post(&p, &c).await, // overwrite existing
-                    None    => {
-                        if let Some(new_p) = prompt("New file path (e.g. js/app.js)") {
-                            api_post(&new_p, &c).await; // create new
-                        }
-                    }
-                }
-                reload();
-            });
+            if let Some(path) = &sel_path {
+                post_api_file(path.clone(), text.clone());
+            } else if let Some(new_p) = web_sys::window()
+                .unwrap()
+                .prompt_with_message("New file path (e.g. js/app.js)")
+                .unwrap()
+            {
+                post_api_file(new_p, text.clone());
+            }
         })
     };
 
     /* -- Delete button -------------------------------------------------- */
     let ondelete = {
-        let path_opt = sel_path.clone();
+        let api_delete = api_delete.clone();
+        let sel_path   = sel_path.clone();
         Callback::from(move |_| {
-            if let Some(p) = &path_opt {
-                let p = p.clone();
-                if confirm(&format!("Delete {p}?")) {
-                    spawn_local(async move { api_delete(&p).await; reload(); });
+            if let Some(path) = &sel_path {
+                if web_sys::window()
+                    .unwrap()
+                    .confirm_with_message(&format!("Delete {}?", path))
+                    .unwrap()
+                {
+                    api_delete(path.clone());
                 }
             }
         })
@@ -116,65 +88,80 @@ pub fn code_editor(props: &Props) -> Html {
 
     /* -- Move/Rename button --------------------------------------------- */
     let onmove = {
-        let path_opt = sel_path.clone();
+        let api_move = api_move.clone();
+        let sel_path = sel_path.clone();
         Callback::from(move |_| {
-            if let Some(from) = &path_opt {
-                if let Some(to) = prompt("New path (relative to root)") {
-                    let from = from.clone();
-                    spawn_local(async move { api_move(&from, &to).await; reload(); });
+            if let Some(from) = &sel_path {
+                if let Some(to) = web_sys::window()
+                    .unwrap()
+                    .prompt_with_message("New path (relative to root)")
+                    .unwrap()
+                {
+                    api_move(from.clone(), to);
                 }
             }
         })
     };
 
     /* -- New Folder button ----------------------------------------------- */
-    let on_new_folder = Callback::from(move |_| {
-        if let Some(folder) = prompt("Folder name (e.g. img/icons)") {
-            let tmp = format!("{folder}/__tmp__"); // write + delete tmp file
-            spawn_local(async move {
-                api_post(&tmp, "").await;
-                api_delete(&tmp).await;
-                reload();
-            });
-        }
-    });
+    let on_new_folder = {
+        let api_delete = api_delete.clone();
+        Callback::from(move |_| {
+            if let Some(folder) = web_sys::window()
+                .unwrap()
+                .prompt_with_message("Folder name (e.g. img/icons)")
+                .unwrap()
+            {
+                let tmp = format!("{}/__tmp__", folder);
+                post_api_file(tmp.clone(), String::new());
+                api_delete(tmp);
+            }
+        })
+    };
 
-    /* -- UI RENDER ------------------------------------------------------ */
     html! {
         <div class="flex flex-col h-full">
             /* toolbar */
             <div class="mb-2 flex gap-2">
-                <button class="btn btn-primary" onclick={on_new_folder}>{"New Folder"}</button>
+                <button class="btn btn-primary" onclick={on_new_folder.clone()}>{"New Folder"}</button>
                 <button class="btn btn-primary" onclick={onsave.clone()}>
                     { if sel_path.is_some() { "Save" } else { "New File" } }
                 </button>
-                { if sel_path.is_some() {
-                    html! {
-                        <>
-                            <button class="btn btn-secondary" onclick={onmove}>{"Move"}</button>
-                            <button class="btn btn-danger"  onclick={ondelete}>{"Delete"}</button>
-                        </>
+                {
+                    if sel_path.is_some() {
+                        html! {
+                            <>
+                                <button class="btn btn-secondary" onclick={onmove.clone()}>{"Move"}</button>
+                                <button class="btn btn-danger"  onclick={ondelete.clone()}>{"Delete"}</button>
+                            </>
+                        }
+                    } else {
+                        html!{}
                     }
-                } else { html!{} } }
+                }
             </div>
 
             /* filename */
-            { if sel_path.is_some() {
-                html! { <strong id="filename">{ sel_path.clone().unwrap() }</strong> }
-            } else {
-                html! {  }
-            }}
+            {
+                if let Some(ref p) = sel_path {
+                    html! { <strong id="filename">{ p.clone() }</strong> }
+                } else {
+                    html!{}
+                }
+            }
 
             /* editor pane */
-            { if sel_path.is_some() {
-                html! {
-                    <CodeEditorTextarea
-                        value={(*text).clone()}
-                        oninput={oninput.clone()} />
+            {
+                if sel_path.is_some() {
+                    html! {
+                        <CodeEditorTextarea
+                            value={(*text).clone()}
+                            oninput={oninput.clone()} />
+                    }
+                } else {
+                    html! { <h2 class="card">{"Create or select a file to start editing."}</h2> }
                 }
-            } else {
-                html! { <h2 class="card">{"Create or select a file to start editing."}</h2> }
-            }}
+            }
         </div>
     }
 }

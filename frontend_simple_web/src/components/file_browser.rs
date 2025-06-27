@@ -1,12 +1,12 @@
 // frontend_simple_web/src/components/file_browser.rs
-use gloo::net::http::Request;
-use serde::Deserialize;
+use serde::{Deserialize};
 use urlencoding::encode;
 use wasm_bindgen_futures::spawn_local;
 use yew::events::DragEvent;
 use yew::prelude::*;
+use gloo::console::log;
 
-const AUTH: &str = "secret123";
+use crate::api::file::{api_delete, get_api_files, api_move};
 
 #[derive(Deserialize, Clone, PartialEq)]
 pub struct FileEntry {
@@ -30,15 +30,11 @@ pub fn file_browser(props: &Props) -> Html {
         let cwd = cwd.clone();
         let entries = entries.clone();
         use_effect_with(cwd.clone(), move |dir| {
-            let api_url = std::env::var("API_URL").unwrap_or_default();
-            let url = if dir.is_empty() { format!("{api_url}/api/files").into() }
-                      else { format!("/api/files?path={}", encode(dir)) };
+            let entries = entries.clone();
+            let path = format!("{}", encode(dir));
 
             spawn_local(async move {
-                if let Ok(resp) = Request::get(&url)
-                    .header("Authorization", AUTH)
-                    .send()
-                    .await
+                if let Ok(resp) = get_api_files(&path).await
                 {
                     if let Ok(list) = resp.json::<Vec<FileEntry>>().await {
                         entries.set(list);
@@ -53,21 +49,6 @@ pub fn file_browser(props: &Props) -> Html {
     fn joined(dir: &str, leaf: &str) -> String {
         if dir.is_empty() { leaf.into() } else { format!("{dir}/{leaf}") }
     }
-    async fn api_move(from: &str, to: &str) {
-        let body = serde_json::json!({ "from": from, "to": to });
-        let api_url = std::env::var("API_URL").unwrap_or_default();
-        let _ = Request::post(&format!("{api_url}/api/move"))
-            .header("Authorization", AUTH)
-            .header("Content-Type", "application/json")
-            .body(serde_json::to_string(&body).unwrap())
-            .expect("req").send().await;
-    }
-    async fn api_delete(path: &str) {
-        let api_url = std::env::var("API_URL").unwrap_or_default();
-        let url = format!("{api_url}/api/file?path={}", encode(path));
-        let _ = Request::delete(&url).header("Authorization", AUTH).send().await;
-    }
-    fn reload() { let _ = web_sys::window().map(|w| w.location().reload()); }
     fn confirm(msg: &str) -> bool {
         web_sys::window().map(|w| w.confirm_with_message(msg).unwrap_or(false)).unwrap_or(false)
     }
@@ -104,11 +85,15 @@ pub fn file_browser(props: &Props) -> Html {
                 if let Some(dt) = e.data_transfer() {
                     if let Ok(src_full) = dt.get_data("text/plain") {
                         let leaf = src_full.rsplit('/').next().unwrap_or(&src_full);
-                        let dest_dir = if target_dir.is_empty() { (*cwd_now).clone() }
-                                       else { target_dir.clone() };
+                        let dest_dir = if target_dir.is_empty() {
+                            (*cwd_now).clone()
+                        } else {
+                            target_dir.clone()
+                        };
                         let dest = joined(&dest_dir, leaf);
                         if dest != src_full {
-                            spawn_local(async move { api_move(&src_full, &dest).await; reload(); });
+                            log!(&format!("move {src_full} to {dest}"));
+                            api_move(&src_full, &dest);
                         }
                     }
                 }
@@ -167,16 +152,17 @@ pub fn file_browser(props: &Props) -> Html {
     html! {
         <ul class="space-y-1" ondragover={drag_over.clone()} ondrop={drop_on_ul}>
             { if !cwd.is_empty() {
-                html! {
-                    <li class="cursor-pointer hover:bg-card rounded px-1"
-                        onclick={up}
+                    html! {
+                        <li class="cursor-pointer hover:bg-card rounded px-1"
+                            onclick={up}
                         ondragover={drag_over.clone()}
-                        ondrop={drop_on_dotdot.clone()}>
-                        { "📁 .." }
-                    </li>
-                }
+                            ondrop={drop_on_dotdot.clone()}>
+                            { "📁 .." }
+                        </li>
+                    }
             } else { html!{} } }
 
+            /* -- list entries----------------------------------------------- */
             { for entries.iter().cloned().map(|entry| {
                 let icon_html = icon_for(&entry);
                 let basename = entry.path.clone();
@@ -185,7 +171,7 @@ pub fn file_browser(props: &Props) -> Html {
                 let full_path = joined(&cwd, &basename);
                 let confirm_msg = if entry.is_dir {
                     format!("Delete folder “{}” and its contents?", full_path)
-                } else {
+                        } else {
                     format!("Delete file “{}”?", full_path)
                 };
                 let del_cb = {
@@ -193,18 +179,19 @@ pub fn file_browser(props: &Props) -> Html {
                     Callback::from(move |_| {
                         if confirm(&confirm_msg) {
                             let file_to_delete = fp.clone();
-                            spawn_local(async move { api_delete(&file_to_delete).await; reload(); });
+                            spawn_local(async move {
+                                api_delete(&file_to_delete);
+                            });
                         }
                     })
                 };
                 let del_btn = html! { <button class="text-red-600" onclick={del_cb}>{"🗑"}</button> };
 
                 /* --------- entry-specific UI --------- */
+                // click handler
+                let ent_for_click = entry.clone();
+                let onclick = click_entry.reform(move |_| ent_for_click.clone());
                 if entry.is_dir {
-                    // click handler
-                    let ent_for_click = entry.clone();
-                    let onclick = click_entry.reform(move |_| ent_for_click.clone());
-
                     // drop target
                     let ondrop = mk_drop(joined(&cwd, &basename));
 
@@ -219,21 +206,17 @@ pub fn file_browser(props: &Props) -> Html {
                         </li>
                     }
                 } else {
-                    // click handler
-                    let ent_for_click = entry.clone();
-                    let onclick = click_entry.reform(move |_| ent_for_click.clone());
-
                     // drag handler
                     let drag_cb = drag_start(basename.clone());
 
                     html! {
-                        <li class="cursor-pointer hover:bg-card rounded px-1
-                                flex justify-between items-center gap-2"
-                            onclick={onclick}
+                            <li class="cursor-pointer hover:bg-card rounded px-1
+                                    flex justify-between items-center gap-2"
+                                onclick={onclick}
                             draggable="true"
-                            ondragstart={drag_cb}>
-                            <span class="flex">{ icon_html }{ &entry.path }</span>
-                            { del_btn }
+                                ondragstart={drag_cb}>
+                                <span class="flex">{ icon_html }{ &entry.path }</span>
+                                { del_btn }
                         </li>
                     }
                 }

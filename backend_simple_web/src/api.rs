@@ -65,20 +65,25 @@ pub async fn get_file(path: Option<String>, _admin: Admin) -> Option<NamedFile> 
 // Example: POST /api/file  JSON {"path":"css/app.css","content":"body{}"}
 #[derive(Deserialize, Debug)]
 #[serde(crate = "rocket::serde")]
-pub struct FileSave { path: String, content: String }
+pub struct FileBody { content: String }
 
-#[post("/file", data = "<payload>")]
-pub async fn save_file(_admin: Admin, payload: Json<FileSave>) -> Result<Status, Status> {
-    let rel = clean(&payload.path);
+#[post("/file?<path>", data = "<body>")]
+pub async fn save_file(_admin: Admin, path: &str, body: Json<FileBody>) -> Result<Status, Status> {
+    let rel = clean(path);
     if rel.is_empty() { return Err(Status::BadRequest); }
 
     let full = Path::new(ROOT).join(&rel);
-    if fs::metadata(&full).await.ok().map(|m| m.is_dir()).unwrap_or(false) {
+    if fs::metadata(&full).await
+           .map(|m| m.is_dir())
+           .unwrap_or(false)
+    {
         return Err(Status::BadRequest); // target is a directory
     }
 
-    if let Some(parent) = full.parent() { fs::create_dir_all(parent).await.ok(); }
-    fs::write(&full, &payload.content).await.map_err(|_| Status::InternalServerError)?;
+    if let Some(parent) = full.parent() {
+        fs::create_dir_all(parent).await.map_err(|_| Status::InternalServerError)?;
+    }
+    fs::write(&full, &body.content).await.map_err(|_| Status::InternalServerError)?;
     Ok(Status::Ok)
 }
 
@@ -105,21 +110,42 @@ pub async fn delete_file(path: Option<String>, _admin: Admin) -> Result<Status, 
 #[serde(crate = "rocket::serde")]
 pub struct FileMove { from: String, to: String }
 
-/// Reject `..` and ensure the final canonical path is still inside `ROOT`.
-async fn resolve_into_root(rel: &str) -> Result<PathBuf, Status> {
-    let cleaned   = clean(rel);
+/// For files/dirs that must already exist on disk.
+async fn resolve_src(rel: &str) -> Result<PathBuf, Status> {
+    let cleaned = clean(rel);
     if cleaned.is_empty() { return Err(Status::BadRequest); }
 
     let full = Path::new(ROOT).join(&cleaned);
-    let canonical = fs::canonicalize(&full).await
+    let canon = fs::canonicalize(&full).await
         .map_err(|_| Status::BadRequest)?;
     let root_canon = fs::canonicalize(ROOT).await
         .map_err(|_| Status::InternalServerError)?;
 
-    if !canonical.starts_with(&root_canon) {
-        return Err(Status::BadRequest);      // path traversal attempt
+    if !canon.starts_with(&root_canon) {
+        return Err(Status::BadRequest);
     }
-    Ok(canonical)
+    Ok(canon)
+}
+
+/// For a new or moved-to path: ensure its parent is valid, but allow the file itself to not exist.
+async fn resolve_dst(rel: &str) -> Result<PathBuf, Status> {
+    let cleaned = clean(rel);
+    if cleaned.is_empty() { return Err(Status::BadRequest); }
+
+    let full = Path::new(ROOT).join(&cleaned);
+    let parent = full.parent()
+        .ok_or(Status::BadRequest)?;
+
+    let parent_canon = fs::canonicalize(parent).await
+        .map_err(|_| Status::BadRequest)?;
+    let root_canon   = fs::canonicalize(ROOT).await
+        .map_err(|_| Status::InternalServerError)?;
+
+    if !parent_canon.starts_with(&root_canon) {
+        return Err(Status::BadRequest);
+    }
+
+    Ok(full)
 }
 
 #[post("/move", data = "<payload>")]
@@ -127,9 +153,8 @@ pub async fn move_entry(
     _admin: Admin,
     payload: Json<FileMove>
 ) -> Result<Status, Status> {
-
-    let src = resolve_into_root(&payload.from).await?;
-    let dst = resolve_into_root(&payload.to  ).await?;
+    let src = resolve_src(&payload.from).await?;
+    let dst = resolve_dst(&payload.to).await?;
 
     // Prevent moving a directory *inside itself* (would loop forever)
     if src.is_dir() && dst.starts_with(&src) {

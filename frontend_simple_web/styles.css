@@ -11,9 +11,9 @@
     --red-600: #dc2626;
     --surface-hov: #262626;
 
-    --editor-font:  "Fira Code", Menlo, monospace;
+    --editor-font: "Fira Code", Menlo, monospace;
     --editor-size: 18px;
-    --editor-pad:  .5rem;
+    --editor-pad: .5rem;
 }
 
 /* Typography & base reset -------------------------------------- */
@@ -71,6 +71,7 @@ li {
     height: 30px;
 }
 
+a+.btn,
 button {
     border: none;
     padding: 0;
@@ -91,6 +92,48 @@ svg {
     height: 20px;
 }
 
+.login-container {
+    align-items: center;
+    height: 100vh;
+}
+
+.login-card {
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-card);
+    border-radius: 10px;
+    width: 260px;
+    padding: 20px;
+    margin-bottom: 0 !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+    text-align: center;
+    transition: transform 0.3s;
+}
+
+.login-logo {
+    width: 128px;
+    height: 128px;
+}
+
+.input {
+    margin-bottom: 1.5em;
+    background-color: var(--bg-card);
+    color: var(--text-main);
+    border: 1px solid var(--surface-hov);
+    border-radius: 4px;
+    padding: .5rem;
+    font-size: 1rem;
+    transition: border-color .15s ease;
+}
+
+.input:focus-visible {
+    outline: 2px solid var(--purple);
+}
+
+.enter_password {
+    color: white !important;
+}
+
 /* Selection ------------------------------------------------------- */
 *::selection,
 *::-moz-selection {
@@ -99,12 +142,12 @@ svg {
 }
 
 *:focus {
-    caret-color: var(--text-main);
+    caret-color: var(--text-main) !important;
 }
 
 textarea:focus-visible {
-  outline: 2px solid var(--purple);
-  border-radius: 3px;
+    outline: 2px solid var(--purple);
+    border-radius: 3px;
 }
 
 /* Spacing utilities ----------------------------------------------- */
@@ -139,6 +182,10 @@ textarea:focus-visible {
 
 .flex-col {
     flex-direction: column;
+}
+
+.justify-center {
+    justify-content: center;
 }
 
 .justify-between {
@@ -295,22 +342,28 @@ textarea {
     width: 100%;
     height: 100%;
     font-family: var(--editor-font);
-    font-size:   var(--editor-size);
-    line-height: 1.45;             /* keep lines tall enough for most fonts */
+    font-size: var(--editor-size);
+    line-height: 1.45;
+    /* keep lines tall enough for most fonts */
     margin: 0;
 }
 
 /* ────────── colourised *copy* ────────── */
 .editor-highlight {
     position: absolute;
-    inset: 0;                      /* full stretch */
+    inset: 0;
+    /* full stretch */
     padding: var(--editor-pad);
     white-space: pre-wrap;
     word-wrap: break-word;
-    tab-size: 4;                   /* keep tabs in sync */
-    pointer-events: none;          /* clicks fall through */
-    user-select: none;             /* don’t select this layer */
-    overflow: hidden;              /* textarea handles scrolling */
+    tab-size: 4;
+    /* keep tabs in sync */
+    pointer-events: none;
+    /* clicks fall through */
+    user-select: none;
+    /* don’t select this layer */
+    overflow: hidden;
+    /* textarea handles scrolling */
     margin: 0;
 }
 
@@ -322,24 +375,55 @@ textarea {
     border: 1px solid #ccc;
     border-radius: 4px;
     background: transparent;
-    color: transparent;            /* hide glyphs */
-    font: inherit;                 /* inherits family, size, line-height */
+    color: transparent;
+    /* hide glyphs */
+    font: inherit;
+    /* inherits family, size, line-height */
     resize: vertical;
     overflow: auto;
-    margin: 0;                     /* remove UA-default margin */
+    margin: 0;
+    /* remove UA-default margin */
 }
-.editor-input:focus { outline: none; }
+
+.editor-input:focus {
+    outline: none;
+}
 
 /* ────────── syntax colours ────────── */
-.kw      { color: #d73a49; }  /* keyword  */
-.string  { color: #032f62; }
-.attr    { color:#795e26; }   /* attribute name  */
-.comment { color:#6a737d; }   /* already there – keep for completeness */
-.string  { color:#032f62; }   /* already there */
-.tag     { color:#22863a; }   /* already there */
+.kw {
+    color: #d73a49;
+}
+
+/* keyword  */
+.string {
+    color: #032f62;
+}
+
+.attr {
+    color: #795e26;
+}
+
+/* attribute name  */
+.comment {
+    color: #6a737d;
+}
+
+/* already there – keep for completeness */
+.string {
+    color: #032f62;
+}
+
+/* already there */
+.tag {
+    color: #22863a;
+}
+
+/* already there */
 
 /* optional tweak – make angle brackets faint so tags pop */
-.editor-highlight::selection { background: #b3d4fc; }
+.editor-highlight::selection {
+    background: #b3d4fc;
+}
 
 
 /* Scrollbar (webkit) ---------------------------------------------- */

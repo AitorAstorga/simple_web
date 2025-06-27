@@ -10,7 +10,6 @@ impl<'r> FromRequest<'r> for Admin {
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         let token = std::env::var("ADMIN_TOKEN").unwrap_or_default();
-        print!("token: {token}");
         match req.headers().get_one("Authorization") {
             Some(t) if t == token => Outcome::Success(Admin),
             _ => Outcome::Error((Status::Unauthorized, ())),
