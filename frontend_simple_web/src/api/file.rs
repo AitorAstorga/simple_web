@@ -1,12 +1,9 @@
-use std::fmt::format;
-
 // frontend_simple_web/src/file.rs
 use gloo::{console::log, net::{http::{Request, Response}, Error}};
 use urlencoding::encode;
 use wasm_bindgen_futures::spawn_local;
 
-use crate::api::auth::get_token;
-const DEFAULT_API_URL: &str = "http://localhost:8000";
+use crate::{api::auth::get_token, config_file::get_env_var};
 
 // Helper method to reload the page
 fn reload() { let _ = web_sys::window().map(|w| w.location().reload()); }
@@ -14,7 +11,7 @@ fn reload() { let _ = web_sys::window().map(|w| w.location().reload()); }
 pub fn post_api_file(path: impl Into<String>, content: impl Into<String>) {
     let path    = path.into();
     let content = content.into();
-    let api_url = std::env::var("API_URL").unwrap_or_else(|_| DEFAULT_API_URL.to_owned());
+    let api_url = get_env_var("API_URL");
     let auth    = get_token();
 
     spawn_local(async move {
@@ -36,7 +33,7 @@ pub fn post_api_file(path: impl Into<String>, content: impl Into<String>) {
 }
 
 pub async fn get_api_file(path: &str) -> Result<Response, Error> {
-    let api_url = std::env::var("API_URL").unwrap_or_else(|_| DEFAULT_API_URL.to_owned());
+    let api_url = get_env_var("API_URL");
     let url = format!("{api_url}/api/file?path={}", encode(path));
     let auth = get_token();
     Request::get(&url)
@@ -46,7 +43,7 @@ pub async fn get_api_file(path: &str) -> Result<Response, Error> {
 }
 
 pub async fn get_api_files(path: &str) -> Result<Response, Error> {
-    let api_url = std::env::var("API_URL").unwrap_or_else(|_| DEFAULT_API_URL.to_owned());
+    let api_url = get_env_var("API_URL");
     let url = format!("{api_url}/api/files?path={}", encode(path));
     let auth = get_token();
     Request::get(&url)
@@ -58,7 +55,7 @@ pub async fn get_api_files(path: &str) -> Result<Response, Error> {
 pub fn api_move(from: impl Into<String>, to: impl Into<String>) {
     let from = from.into();
     let to   = to.into();
-    let api_url = std::env::var("API_URL").unwrap_or_else(|_| DEFAULT_API_URL.to_owned());
+    let api_url = get_env_var("API_URL");
     let auth    = get_token();
 
     log!(format!("moving {from} to {to}"));
@@ -69,7 +66,7 @@ pub fn api_move(from: impl Into<String>, to: impl Into<String>) {
             .header("Authorization", &auth)
             .header("Content-Type", "application/json")
             .body(body)
-            .expect("failed to build move‐request")
+            .expect("failed to build move-request")
             .send()
             .await;
     });
@@ -77,8 +74,7 @@ pub fn api_move(from: impl Into<String>, to: impl Into<String>) {
 
 pub fn api_delete(path: impl Into<String>) {
     let path = path.into();
-    let api_url = std::env::var("API_URL")
-        .unwrap_or_else(|_| DEFAULT_API_URL.to_owned());
+    let api_url = get_env_var("API_URL");
     let auth    = get_token();
 
     spawn_local(async move {

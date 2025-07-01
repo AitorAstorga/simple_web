@@ -1,3 +1,4 @@
+// backend_simple_web/src/main.rs
 #[macro_use] extern crate rocket;
 
 mod api;
@@ -5,11 +6,24 @@ mod auth;
 
 use rocket::{fs::{relative, FileServer}, http::Method};
 use rocket_cors::{AllowedHeaders, AllowedOrigins, CorsOptions};
+use std::{fs, io::Write, path::Path};
+
+fn write_frontend_config(api_url: &str, editor_url: &str) -> std::io::Result<()> {
+    let config_dir = Path::new(relative!(".")).join("config");
+    fs::create_dir_all(&config_dir)?;
+    let mut file = fs::File::create(config_dir.join(".env"))?;
+    writeln!(file, "API_URL={}", api_url)?;
+    writeln!(file, "EDITOR_URL={}", editor_url)?;
+    Ok(())
+}
 
 #[launch]
 fn rocket() -> _ {
     let api_url = std::env::var("API_URL").unwrap_or_default();
     let editor_url = std::env::var("EDITOR_URL").unwrap_or_default();
+
+    write_frontend_config(&api_url, &editor_url).expect("Failed to write frontend config");
+
     let allowed_origins = AllowedOrigins::some_exact(&[
         // local testing
         "http://127.0.0.1:8080",

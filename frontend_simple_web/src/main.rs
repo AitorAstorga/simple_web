@@ -2,6 +2,7 @@ mod api;
 mod components;
 mod pages;
 mod router;
+mod config_file;
 
 use crate::router::AppRouter;
 use yew::prelude::*;
