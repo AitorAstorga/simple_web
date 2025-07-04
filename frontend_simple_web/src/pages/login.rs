@@ -2,12 +2,25 @@
 use yew::prelude::*;
 use web_sys::HtmlInputElement;
 use yew_router::prelude::*;
-use crate::{api::auth, router::Route};
+use crate::{api::auth, config_file::load_config, router::Route};
+use wasm_bindgen_futures::spawn_local;
 
 #[function_component(Login)]
 pub fn login() -> Html {
     // local state for the input field
     let input_token = use_state(|| String::new());
+    let ready = use_state(|| false);
+
+    {
+        let ready = ready.clone();
+        use_effect_with((), move |_| {
+            spawn_local(async move {
+                load_config().await;
+                ready.set(true);
+            });
+            || ()
+        });
+    }
 
     let oninput = {
         let token = input_token.clone();
@@ -25,6 +38,10 @@ pub fn login() -> Html {
             auth::set_token(&token);
         })
     };
+
+    if !*ready {
+        return html! { "Loading..." };
+    }
 
     html! {
         <div class="login-container flex justify-center">

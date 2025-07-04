@@ -43,7 +43,9 @@ pub async fn get_api_file(path: &str) -> Result<Response, Error> {
 }
 
 pub async fn get_api_files(path: &str) -> Result<Response, Error> {
+    log!(format!("get_api_files({path})"));
     let api_url = get_env_var("API_URL");
+    log!(format!("api_url: {api_url}"));
     let url = format!("{api_url}/api/files?path={}", encode(path));
     let auth = get_token();
     Request::get(&url)

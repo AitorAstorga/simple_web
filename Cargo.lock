@@ -93,6 +93,7 @@ dependencies = [
  "rocket",
  "rocket_cors",
  "serde",
+ "serde_json",
  "tokio",
  "urlencoding",
 ]
@@ -319,6 +320,7 @@ dependencies = [
  "gloo 0.11.0",
  "html-escape",
  "lazy_static",
+ "once_cell",
  "regex",
  "serde",
  "serde_json",

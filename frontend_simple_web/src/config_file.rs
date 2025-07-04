@@ -1,24 +1,41 @@
-// frontend_simple_web/src/config_file.rs
-const DEFAULT_API_URL: &str = "http://localhost:8000";
-const CONFIG_FILE : &str = "/config/.env";
+use gloo::{console::error, net::http::Request};
+use once_cell::sync::OnceCell;
+use serde::Deserialize;
 
+#[derive(Debug, Deserialize)]
+pub struct FrontendConfig {
+    pub api_url: String,
+    pub editor_url: String,
+}
+
+static CONFIG: OnceCell<FrontendConfig> = OnceCell::new();
+
+pub async fn load_config() {
+    if CONFIG.get().is_none() {
+        let response = Request::get("/config/config.json")
+            .send()
+            .await
+            .expect("Failed to fetch config");
+
+        let config: FrontendConfig = response
+            .json()
+            .await
+            .expect("Failed to parse config.json");
+
+        CONFIG.set(config).ok();
+    }
+}
 
 pub fn get_env_var(key: &str) -> String {
-    let content = fs::read_to_string(CONFIG_FILE)
-        .unwrap_or_else(|_| DEFAULT_API_URL.to_string());
+    let value = CONFIG.get().and_then(|cfg| match key {
+        "API_URL" => Some(cfg.api_url.clone()),
+        "EDITOR_URL" => Some(cfg.editor_url.clone()),
+        _ => None,
+    });
 
-    for line in content.lines() {
-        let line = line.trim();
-        if line.is_empty() || line.starts_with('#') {
-            continue;
-        }
-        let mut parts = line.splitn(2, '=');
-        let k = parts.next().unwrap().trim();
-        let v = parts.next().unwrap_or("").trim().trim_matches('"');
-        if k == key {
-            return v.to_string();
-        }
+    if value.is_none() {
+        error!("Failed to get env var: {key}");
     }
 
-    DEFAULT_API_URL.to_string()
+    value.unwrap_or_default()
 }
