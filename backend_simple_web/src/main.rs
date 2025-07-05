@@ -4,7 +4,7 @@
 mod api;
 mod auth;
 
-use rocket::{fs::{relative, FileServer}, http::Method};
+use rocket::{fs::FileServer, http::Method};
 use rocket_cors::{AllowedHeaders, AllowedOrigins, CorsOptions};
 use std::{fs, path::Path};
 use serde::Serialize;
@@ -29,12 +29,15 @@ fn write_frontend_config(api_url: &str, editor_url: &str) -> std::io::Result<()>
 
 #[launch]
 fn rocket() -> _ {
-    let api_url = std::env::var("API_URL").unwrap_or_default();
-    let editor_url = std::env::var("EDITOR_URL").unwrap_or_default();
+    let api_url = std::env::var("API_URL").expect("Please set API_URL to something like \"https://api.example.com\"");
+    let editor_url = std::env::var("EDITOR_URL").expect("Please set EDITOR_URL to something like \"https://editor.example.com\"");
 
     write_frontend_config(&api_url, &editor_url).expect("Failed to write frontend config");
 
     let allowed_origins = AllowedOrigins::some_exact(&[
+        // local SPA on port 80
+        "http://127.0.0.1",
+        "http://localhost",
         // local testing
         "http://127.0.0.1:8080",
         "http://localhost:8080",

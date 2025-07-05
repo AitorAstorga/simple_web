@@ -76,8 +76,14 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 RUN rm -rf /usr/share/nginx/html/*
 COPY --from=builder /app/frontend_simple_web/dist /usr/share/nginx/html
 
+# Copy the Nginx config
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
 # Copy the compiled backend binary
 COPY --from=builder /app/target/release/backend_simple_web /usr/local/bin/backend_simple_web
+
+# Create the public_site directory
+RUN mkdir -p /public_site
 
 # Copy the run script
 COPY run.sh /run.sh

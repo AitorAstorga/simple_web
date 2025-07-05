@@ -16,3 +16,8 @@
 - Renders the public site at the root domain.  
 - Serves static assets from `/public_site` (e.g., images, CSS, JS).
 
+# Testing
+Build the Dockerfile
+```bash
+docker run --rm -it -p 80:80/tcp -p 8000:8000/tcp -p 8080:8080/tcp -e ROCKET_ADDRESS=0.0.0.0 -e ROCKET_PORT=8000 -e API_URL=http://127.0.0.1:8000/ -e EDITOR_URL=http://127.0.0.1:8080/ -e ADMIN_TOKEN=secret123 simpleweb:latest
+```

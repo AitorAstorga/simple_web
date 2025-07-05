@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 
 use crate::auth::Admin;
 
-const ROOT: &str = "../public_site";
+const ROOT: &str = "/public_site";
 
 #[derive(Serialize)]
 #[serde(crate = "rocket::serde")]
