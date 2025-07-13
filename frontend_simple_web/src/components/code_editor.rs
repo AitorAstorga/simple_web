@@ -124,9 +124,16 @@ pub fn code_editor(props: &Props) -> Html {
             /* toolbar */
             <div class="mb-2 flex gap-2">
                 <button class="btn btn-primary" onclick={on_new_folder.clone()}>{"New Folder"}</button>
-                <button class="btn btn-primary" onclick={onsave.clone()}>
-                    { if sel_path.is_some() { "Save" } else { "New File" } }
-                </button>
+                <button class="btn btn-primary" onclick={onsave.clone()}>{ "New File" }</button>
+                { 
+                    if sel_path.is_some() { 
+                        html! {
+                            <button class="btn btn-primary" onclick={onsave.clone()}>{"Save" }</button>
+                        }
+                    } else {
+                        html!{}
+                    }
+                }
                 {
                     if sel_path.is_some() {
                         html! {

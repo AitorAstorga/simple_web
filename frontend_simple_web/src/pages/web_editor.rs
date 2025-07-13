@@ -17,7 +17,7 @@ pub fn web_editor() -> Html {
                 <img src="static/img/aichan.svg" alt="aichan" class="logo" />
                 <div>
                     <h1 class="font-bold">{ "aichan's Simple Web Editor" }</h1>
-                    <p>{ "Your static site is served at: " }{ get_env_var("API_URL") } { "You can change this with the API_URL env variable." }</p>
+                    <p>{ "Your static site is served at: " } <a href={ get_env_var("API_URL") } target="_blank">{ get_env_var("API_URL") }</a> { " You can change this with the "} <code>{ "API_URL" }</code> {" env variable." }</p>
                 </div>
             </header>
             <div class="grid grid-cols-4 h-screen">
