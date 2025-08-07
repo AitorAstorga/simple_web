@@ -1,16 +1,16 @@
 # ===========================
 # Stage 1: Builder
 # ===========================
-FROM rust:1.86-slim as builder
+FROM rust:1.86-slim AS builder
 
 # Install necessary dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        pkg-config \
-        libssl-dev \
-        libsqlite3-dev \
         build-essential \
         curl \
+        libsqlite3-dev \
+        libssl-dev \
+        pkg-config \
         tar \
         && rm -rf /var/lib/apt/lists/*
 
@@ -58,12 +58,12 @@ FROM nginx:stable
 # Install necessary runtime dependencies and Rust toolchain
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        openssl \
-        pkg-config \
-        libssl-dev \
         build-essential \
         curl \
         libsqlite3-dev \
+        libssl-dev \
+        openssl \
+        pkg-config \
         && rm -rf /var/lib/apt/lists/*
 
 # Install Rust using rustup
