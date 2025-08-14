@@ -1,7 +1,7 @@
+// backend_simple_web/src/auth.rs
 use rocket::request::{FromRequest, Outcome, Request};
 use rocket::http::Status;
 
-/// Simple bearer‑token guard – set `ADMIN_TOKEN` env‑var before starting the server
 pub struct Admin;
 
 #[rocket::async_trait]

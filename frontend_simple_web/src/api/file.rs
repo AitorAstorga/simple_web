@@ -1,7 +1,9 @@
 // frontend_simple_web/src/file.rs
-use gloo::{console::log, net::{http::{Request, Response}, Error}};
+use gloo::{console::{debug, error, log}, net::{http::{Request, Response}, Error}};
 use urlencoding::encode;
+use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::spawn_local;
+use web_sys::{js_sys::Reflect, FileList};
 
 use crate::{api::auth::get_token, config_file::get_env_var};
 
@@ -84,5 +86,55 @@ pub fn api_delete(path: impl Into<String>) {
             .send()
             .await;
         reload();
+    });
+}
+
+pub fn api_upload(files: FileList, base_path: Option<String>) {
+    let api_url = get_env_var("API_URL").trim_end_matches('/').to_string();
+    let auth    = get_token();
+
+    if files.length() == 0 {
+        error!("No files selected");
+        return;
+    }
+
+    debug!(format!("Uploading {} files", files.length()));
+
+    let form_data = web_sys::FormData::new().expect("should create FormData");
+
+    if let Some(bp) = base_path {
+        form_data.append_with_str("base_path", &bp).unwrap();
+    }
+
+    for i in 0..files.length() {
+        let js_file = files.item(i).unwrap();
+        let file: web_sys::File = js_file.unchecked_into();
+        // Try to read `webkitRelativePath` via Reflect
+        let rel_path = Reflect::get(&file, &JsValue::from_str("webkitRelativePath"))
+            .ok()
+            .and_then(|v| v.as_string())
+            // fallback to just the filename if that property wasn't set
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| file.name());
+
+        // Append the blob with the full path as its filename
+        form_data
+            .append_with_blob_and_filename("files", &file, &rel_path)
+            .unwrap();
+
+        debug!(format!("Uploading as `{}`", rel_path));
+    }
+
+    spawn_local(async move {
+        let url = format!("{api_url}/api/upload");
+        let req = match Request::post(&url)
+            .header("Authorization", &auth)
+            .body(form_data)
+        {
+            Ok(r) => r,
+            Err(_) => return,
+        };
+        let _ = req.send().await;
+        //reload();
     });
 }

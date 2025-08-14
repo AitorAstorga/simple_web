@@ -19,5 +19,7 @@
 # Testing
 Build the Dockerfile
 ```bash
-docker run --rm -it -p 80:80/tcp -p 8000:8000/tcp -p 8080:8080/tcp -e ROCKET_ADDRESS=0.0.0.0 -e ROCKET_PORT=8000 -e API_URL=http://127.0.0.1:8000/ -e EDITOR_URL=http://127.0.0.1:8080/ -e ADMIN_TOKEN=secret123 simpleweb:latest
+docker run --rm -it -p 80:80/tcp -p 8000:8000/tcp -p 8080:8080/tcp -e ROCKET_ADDRESS=0.0.0.0 -e ROCKET_PORT=8000 -e API_URL=http://127.0.0.1:8000/ -e EDITOR_URL=http://127.0.0.1:8080/ -e ADMIN_TOKEN=secret123 -e ROCKET_LOG_LEVEL=debug simpleweb:latest
 ```
+
+API will be served at `http://127.0.0.1:8000/` but EDITOR will be at `http://127.0.0.1:80/`

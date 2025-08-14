@@ -1,9 +1,10 @@
 // frontend_simple_web/src/components/code_editor.rs
-use gloo::console::error;
+use gloo::console::{debug, error, log};
 use wasm_bindgen_futures::spawn_local;
+use web_sys::{Event, HtmlInputElement};
 use yew::prelude::*;
 
-use crate::api::file::{api_move, get_api_file, post_api_file, api_delete};
+use crate::api::file::{api_delete, api_move, api_upload, get_api_file, post_api_file};
 use crate::components::code_editor_textarea::CodeEditorTextarea;
 
 #[derive(Properties, PartialEq)]
@@ -16,6 +17,7 @@ pub fn code_editor(props: &Props) -> Html {
     /* -- state ---------------------------------------------------------- */
     let text     = use_state(|| String::new());
     let sel_path = props.path.clone();
+    let file_input_ref = use_node_ref();
 
     /* -- load file when path changes ------------------------------------ */
     {
@@ -23,7 +25,6 @@ pub fn code_editor(props: &Props) -> Html {
         use_effect_with(sel_path.clone(), {
             let text = text.clone();
             move |maybe_path| {
-                // pull an owned PathBuf out of the Option, rather than borrowing
                 if let Some(path) = maybe_path.clone() {
                     let text = text.clone();
                     spawn_local(async move {
@@ -40,7 +41,6 @@ pub fn code_editor(props: &Props) -> Html {
                 move || {}
             }
         });
-
     }
 
     /* -- textarea on-input ---------------------------------------------- */
@@ -119,27 +119,54 @@ pub fn code_editor(props: &Props) -> Html {
         })
     };
 
+    /* -- Upload button & file input -------------------------------------- */
+    // Trigger the hidden file picker
+    let on_click_upload = {
+        let file_input_ref = file_input_ref.clone();
+        Callback::from(move |_| {
+            if let Some(input) = file_input_ref.cast::<HtmlInputElement>() {
+                // clear previous selection
+                input.set_value("");
+                input.click();
+            }
+        })
+    };
+    // Handle file(s) selected
+    let on_upload = {
+        let file_input_ref = file_input_ref.clone();
+        let base = sel_path.clone();
+        debug!("on_upload");
+        Callback::from(move |_: Event| {
+            let input: HtmlInputElement = file_input_ref
+                .cast()
+                .expect("file input should be an HtmlInputElement");
+            debug!("files: {}", input.files().unwrap().length());
+            if let Some(files) = input.files() {
+                debug!(format!("Uploading {} files…", files.length()));
+                // Log the file names
+                for i in 0..files.length() {
+                    let file: web_sys::File = files.item(i).unwrap();
+                    debug!(file.name());
+                }
+                api_upload(files, base.clone());
+            }
+        })
+    };
+
     html! {
         <div class="flex flex-col h-full">
             /* toolbar */
             <div class="mb-2 flex gap-2">
-                <button class="btn btn-primary" onclick={on_new_folder.clone()}>{"New Folder"}</button>
+                <button class="btn btn-primary" onclick={on_new_folder.clone()}>{ "New Folder" }</button>
                 <button class="btn btn-primary" onclick={onsave.clone()}>{ "New File" }</button>
-                { 
-                    if sel_path.is_some() { 
-                        html! {
-                            <button class="btn btn-primary" onclick={onsave.clone()}>{"Save" }</button>
-                        }
-                    } else {
-                        html!{}
-                    }
-                }
+                <button class="btn btn-primary" onclick={on_click_upload.clone()}>{ "Upload" }</button>
                 {
                     if sel_path.is_some() {
                         html! {
                             <>
-                                <button class="btn btn-secondary" onclick={onmove.clone()}>{"Move"}</button>
-                                <button class="btn btn-danger"  onclick={ondelete.clone()}>{"Delete"}</button>
+                                <button class="btn btn-primary" onclick={onsave.clone()}>{ "Save" }</button>
+                                <button class="btn btn-secondary" onclick={onmove.clone()}>{ "Move" }</button>
+                                <button class="btn btn-danger"  onclick={ondelete.clone()}>{ "Delete" }</button>
                             </>
                         }
                     } else {
@@ -147,6 +174,16 @@ pub fn code_editor(props: &Props) -> Html {
                     }
                 }
             </div>
+
+            // hidden file input for upload
+            <input
+                type="file"
+                ref={file_input_ref}
+                multiple=true
+                webkitdirectory=true
+                style="display: none;"
+                onchange={on_upload}
+            />
 
             /* filename */
             {
@@ -161,9 +198,7 @@ pub fn code_editor(props: &Props) -> Html {
             {
                 if sel_path.is_some() {
                     html! {
-                        <CodeEditorTextarea
-                            value={(*text).clone()}
-                            oninput={oninput.clone()} />
+                        <CodeEditorTextarea value={(*text).clone()} oninput={oninput.clone()} />
                     }
                 } else {
                     html! { <h2 class="card">{"Create or select a file to start editing."}</h2> }

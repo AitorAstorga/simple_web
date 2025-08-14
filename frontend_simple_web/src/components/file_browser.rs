@@ -148,6 +148,10 @@ pub fn file_browser(props: &Props) -> Html {
     let drop_on_dotdot = mk_drop(String::new());
     let drop_on_ul     = mk_drop((*cwd).clone());
 
+    fn get_file_name(entry: &FileEntry) -> String {
+        entry.path.clone().trim_start_matches('/').into()
+    }
+
     /* -- render -------------------------------------------------------- */
     html! {
         <ul class="space-y-1" ondragover={drag_over.clone()} ondrop={drop_on_ul}>
@@ -215,7 +219,7 @@ pub fn file_browser(props: &Props) -> Html {
                                 onclick={onclick}
                             draggable="true"
                                 ondragstart={drag_cb}>
-                                <span class="flex">{ icon_html }{ &entry.path }</span>
+                                <span class="flex">{ icon_html }{ get_file_name(&entry) }</span>
                                 { del_btn }
                         </li>
                     }
