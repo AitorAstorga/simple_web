@@ -159,8 +159,24 @@ textarea:focus-visible {
     margin-top: .25rem;
 }
 
+.space-y-2>:not([hidden])~:not([hidden]) {
+    margin-top: .5rem;
+}
+
+.mb-1 {
+    margin-bottom: .25rem;
+}
+
 .mb-2 {
     margin-bottom: .5rem;
+}
+
+.mt-4 {
+    margin-top: 1rem;
+}
+
+.pt-4 {
+    padding-top: 1rem;
 }
 
 .gap-2 {
@@ -255,6 +271,10 @@ textarea:focus-visible {
     border-right: 1px solid var(--surface-hov);
 }
 
+.border-t {
+    border-top: 1px solid var(--surface-hov);
+}
+
 .rounded {
     border-radius: .25rem;
 }
@@ -322,6 +342,24 @@ li.hover\:bg-card:hover {
 .btn:disabled {
     opacity: .35;
     cursor: not-allowed;
+}
+
+/* Text utilities ---------------------------------------------- */
+.text-sm {
+    font-size: .875rem;
+    line-height: 1.25rem;
+}
+
+.font-bold {
+    font-weight: 700;
+}
+
+.font-medium {
+    font-weight: 500;
+}
+
+.block {
+    display: block;
 }
 
 /* Textarea (code editor) ------------------------------------------ */

@@ -1,6 +1,6 @@
 // frontend_simple_web/src/pages/web_editor.rs
 use yew::prelude::*;
-use crate::{components::{code_editor::CodeEditor, file_browser::FileBrowser}, config_file::get_env_var};
+use crate::{components::{code_editor::CodeEditor, file_browser::FileBrowser, git_manager::GitManager}, config_file::get_env_var};
 
 #[function_component(WebEditor)]
 pub fn web_editor() -> Html {
@@ -23,6 +23,7 @@ pub fn web_editor() -> Html {
             <div class="grid grid-cols-4 h-screen">
                 <aside class="col-span-1 p-3 border-r overflow-y-auto">
                     <FileBrowser {on_select} />
+                    <GitManager />
                 </aside>
                 <main class="col-span-3 p-3">
                     <CodeEditor path={(*selected).clone()} />

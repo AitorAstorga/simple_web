@@ -69,7 +69,9 @@ fn rocket() -> _ {
             api::save_file,
             api::delete_file,
             api::move_entry,
-            api::upload
+            api::upload_files,
+            api::setup_git_repo,
+            api::pull_repo
         ])
         // Anything under `public_site/` is  always available under /
         .mount("/", FileServer::from("/public_site"))
