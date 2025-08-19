@@ -2,3 +2,4 @@
 pub mod web_editor;
 pub mod about;
 pub mod login;
+pub mod settings;

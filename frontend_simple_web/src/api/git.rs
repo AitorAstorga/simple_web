@@ -20,6 +20,12 @@ pub struct GitStatus {
     pub commit_hash: Option<String>,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct AutoPullConfig {
+    pub enabled: bool,
+    pub interval_minutes: u32,
+}
+
 // Helper method to reload the page
 fn reload() { let _ = web_sys::window().map(|w| w.location().reload()); }
 
@@ -85,6 +91,66 @@ pub fn api_git_setup(config: GitRepoConfig, callback: Option<impl Fn(Result<GitS
     });
 }
 
+pub fn api_git_test(config: GitRepoConfig, callback: Option<impl Fn(Result<GitStatus, String>) + 'static>) {
+    let api_url = get_env_var("API_URL");
+    let auth = get_token();
+    
+    spawn_local(async move {
+        let url = format!("{api_url}/api/git/test");
+        let body = match serde_json::to_string(&config) {
+            Ok(b) => b,
+            Err(e) => {
+                error!(&format!("Failed to serialize git config: {}", e));
+                if let Some(cb) = callback {
+                    cb(Err(format!("Failed to serialize config: {}", e)));
+                }
+                return;
+            }
+        };
+        
+        let req = Request::post(&url)
+            .header("Authorization", &auth)
+            .header("Content-Type", "application/json")
+            .body(body);
+        
+        let response = match req {
+            Ok(r) => r.send().await,
+            Err(e) => {
+                error!(&format!("Failed to build test request: {:?}", e));
+                if let Some(cb) = callback {
+                    cb(Err("Failed to build request".to_string()));
+                }
+                return;
+            }
+        };
+        
+        match response {
+            Ok(response) => {
+                match response.json::<GitStatus>().await {
+                    Ok(status) => {
+                        log!(&format!("Git test result: {}", status.message));
+                        if let Some(cb) = callback {
+                            cb(Ok(status));
+                        }
+                    }
+                    Err(e) => {
+                        error!(&format!("Failed to parse test response: {:?}", e));
+                        if let Some(cb) = callback {
+                            cb(Err("Failed to parse response".to_string()));
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                error!(&format!("Test request failed: {:?}", e));
+                if let Some(cb) = callback {
+                    cb(Err("Request failed".to_string()));
+                }
+            }
+        }
+    });
+}
+
 pub fn api_git_pull(callback: Option<impl Fn(Result<GitStatus, String>) + 'static>) {
     let api_url = get_env_var("API_URL");
     let auth = get_token();
@@ -116,6 +182,103 @@ pub fn api_git_pull(callback: Option<impl Fn(Result<GitStatus, String>) + 'stati
             }
             Err(e) => {
                 error!(&format!("Pull request failed: {:?}", e));
+                if let Some(cb) = callback {
+                    cb(Err("Request failed".to_string()));
+                }
+            }
+        }
+    });
+}
+pub fn api_get_auto_pull_config(callback: Option<impl Fn(Result<AutoPullConfig, String>) + 'static>) {
+    let api_url = get_env_var("API_URL");
+    let auth = get_token();
+    
+    spawn_local(async move {
+        let url = format!("{api_url}/api/git/auto-pull");
+        
+        let req = Request::get(&url)
+            .header("Authorization", &auth);
+        
+        match req.send().await {
+            Ok(response) => {
+                match response.json::<AutoPullConfig>().await {
+                    Ok(config) => {
+                        log!(&format!("Auto-pull config retrieved: enabled={}, interval={}min", 
+                                      config.enabled, config.interval_minutes));
+                        if let Some(cb) = callback {
+                            cb(Ok(config));
+                        }
+                    }
+                    Err(e) => {
+                        error!(&format!("Failed to parse auto-pull config response: {:?}", e));
+                        if let Some(cb) = callback {
+                            cb(Err("Failed to parse response".to_string()));
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                error!(&format!("Auto-pull config request failed: {:?}", e));
+                if let Some(cb) = callback {
+                    cb(Err("Request failed".to_string()));
+                }
+            }
+        }
+    });
+}
+
+pub fn api_set_auto_pull_config(config: AutoPullConfig, callback: Option<impl Fn(Result<GitStatus, String>) + 'static>) {
+    let api_url = get_env_var("API_URL");
+    let auth = get_token();
+    
+    spawn_local(async move {
+        let url = format!("{api_url}/api/git/auto-pull");
+        let body = match serde_json::to_string(&config) {
+            Ok(b) => b,
+            Err(e) => {
+                error!(&format!("Failed to serialize auto-pull config: {}", e));
+                if let Some(cb) = callback {
+                    cb(Err(format!("Failed to serialize config: {}", e)));
+                }
+                return;
+            }
+        };
+        
+        let req = Request::post(&url)
+            .header("Authorization", &auth)
+            .header("Content-Type", "application/json")
+            .body(body);
+        
+        let response = match req {
+            Ok(r) => r.send().await,
+            Err(e) => {
+                error!(&format!("Failed to build auto-pull config request: {:?}", e));
+                if let Some(cb) = callback {
+                    cb(Err("Failed to build request".to_string()));
+                }
+                return;
+            }
+        };
+        
+        match response {
+            Ok(response) => {
+                match response.json::<GitStatus>().await {
+                    Ok(status) => {
+                        log!(&format!("Auto-pull config result: {}", status.message));
+                        if let Some(cb) = callback {
+                            cb(Ok(status));
+                        }
+                    }
+                    Err(e) => {
+                        error!(&format!("Failed to parse auto-pull config response: {:?}", e));
+                        if let Some(cb) = callback {
+                            cb(Err("Failed to parse response".to_string()));
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                error!(&format!("Auto-pull config request failed: {:?}", e));
                 if let Some(cb) = callback {
                     cb(Err("Request failed".to_string()));
                 }

@@ -1,6 +1,7 @@
 // frontend_simple_web/src/pages/web_editor.rs
 use yew::prelude::*;
-use crate::{components::{code_editor::CodeEditor, file_browser::FileBrowser, git_manager::GitManager}, config_file::get_env_var};
+use yew_router::prelude::*;
+use crate::{components::{code_editor::CodeEditor, file_browser::FileBrowser}, config_file::get_env_var, router::Route};
 
 #[function_component(WebEditor)]
 pub fn web_editor() -> Html {
@@ -13,17 +14,23 @@ pub fn web_editor() -> Html {
 
     html! {
         <div>
-            <header>
-                <img src="static/img/aichan.svg" alt="aichan" class="logo" />
+            <header class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <img src="static/img/aichan.svg" alt="aichan" class="logo" />
+                    <div>
+                        <h1 class="font-bold">{ "aichan's Simple Web Editor" }</h1>
+                        <p>{ "Your static site is served at: " } <a href={ get_env_var("API_URL") } target="_blank">{ get_env_var("API_URL") }</a> { " You can change this with the "} <code>{ "API_URL" }</code> {" env variable." }</p>
+                    </div>
+                </div>
                 <div>
-                    <h1 class="font-bold">{ "aichan's Simple Web Editor" }</h1>
-                    <p>{ "Your static site is served at: " } <a href={ get_env_var("API_URL") } target="_blank">{ get_env_var("API_URL") }</a> { " You can change this with the "} <code>{ "API_URL" }</code> {" env variable." }</p>
+                    <Link<Route> to={Route::Settings} classes="btn btn-secondary text-sm">
+                        { "⚙️ Settings" }
+                    </Link<Route>>
                 </div>
             </header>
             <div class="grid grid-cols-4 h-screen">
                 <aside class="col-span-1 p-3 border-r overflow-y-auto">
                     <FileBrowser {on_select} />
-                    <GitManager />
                 </aside>
                 <main class="col-span-3 p-3">
                     <CodeEditor path={(*selected).clone()} />

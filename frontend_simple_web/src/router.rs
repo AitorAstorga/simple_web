@@ -2,6 +2,7 @@
 use crate::pages::login::Login;
 use crate::pages::web_editor::WebEditor;
 use crate::pages::about::About;
+use crate::pages::settings::Settings;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
@@ -13,6 +14,8 @@ pub enum Route {
     WebEditor,
     #[at("/about")]
     About,
+    #[at("/settings")]
+    Settings,
     #[not_found]
     #[at("/404")]
     NotFound,
@@ -32,6 +35,7 @@ fn switch(routes: Route) -> Html {
         Route::Login => html! { <Login /> },
         Route::WebEditor => html! { <WebEditor /> },
         Route::About => html! { <About /> },
+        Route::Settings => html! { <Settings /> },
         Route::NotFound => html! { <h1>{ "404 - Page not found" }</h1> },
     }
 }

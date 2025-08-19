@@ -3,6 +3,7 @@
 
 mod api;
 mod auth;
+mod scheduler;
 
 use rocket::{fs::FileServer, http::Method};
 use rocket_cors::{AllowedHeaders, AllowedOrigins, CorsOptions};
@@ -28,11 +29,14 @@ fn write_frontend_config(api_url: &str, editor_url: &str) -> std::io::Result<()>
 }
 
 #[launch]
-fn rocket() -> _ {
+async fn rocket() -> _ {
     let api_url = std::env::var("API_URL").expect("Please set API_URL to something like \"https://api.example.com\"");
     let editor_url = std::env::var("EDITOR_URL").expect("Please set EDITOR_URL to something like \"https://editor.example.com\"");
 
     write_frontend_config(&api_url, &editor_url).expect("Failed to write frontend config");
+
+    // Initialize the git scheduler
+    scheduler::init_scheduler().await.expect("Failed to initialize git scheduler");
 
     let allowed_origins = AllowedOrigins::some_exact(&[
         // local SPA on port 80
@@ -71,7 +75,10 @@ fn rocket() -> _ {
             api::move_entry,
             api::upload_files,
             api::setup_git_repo,
-            api::pull_repo
+            api::pull_repo,
+            api::test_git_repo,
+            api::get_auto_pull_config,
+            api::set_auto_pull_config
         ])
         // Anything under `public_site/` is  always available under /
         .mount("/", FileServer::from("/public_site"))

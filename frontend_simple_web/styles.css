@@ -75,6 +75,14 @@ li {
     height: 30px;
 }
 
+a {
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: none;
+}
+
 a+.btn,
 button {
     border: none;
@@ -163,12 +171,28 @@ textarea:focus-visible {
     margin-top: .5rem;
 }
 
+.space-y-4>:not([hidden])~:not([hidden]) {
+    margin-top: 1rem;
+}
+
+.space-y-6>:not([hidden])~:not([hidden]) {
+    margin-top: 1.5rem;
+}
+
 .mb-1 {
     margin-bottom: .25rem;
 }
 
 .mb-2 {
     margin-bottom: .5rem;
+}
+
+.mb-4 {
+    margin-bottom: 1rem;
+}
+
+.mt-1 {
+    margin-top: .25rem;
 }
 
 .mt-4 {
@@ -179,8 +203,16 @@ textarea:focus-visible {
     padding-top: 1rem;
 }
 
+.p-4 {
+    padding: 1rem;
+}
+
 .gap-2 {
     gap: .5rem;
+}
+
+.gap-3 {
+    gap: .75rem;
 }
 
 .px-1 {
@@ -214,6 +246,10 @@ textarea:focus-visible {
 
 .items-center {
     align-items: center;
+}
+
+.items-start {
+    align-items: flex-start;
 }
 
 .flex-grow {
@@ -350,6 +386,11 @@ li.hover\:bg-card:hover {
     line-height: 1.25rem;
 }
 
+.text-xl {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+}
+
 .font-bold {
     font-weight: 700;
 }
@@ -360,6 +401,11 @@ li.hover\:bg-card:hover {
 
 .block {
     display: block;
+}
+
+/* Width utilities ---------------------------------------------- */
+.w-32 {
+    width: 8rem;
 }
 
 /* Textarea (code editor) ------------------------------------------ */
@@ -476,4 +522,27 @@ aside.overflow-y-auto::-webkit-scrollbar {
 aside.overflow-y-auto::-webkit-scrollbar-thumb {
     background-color: rgba(255, 255, 255, .15);
     border-radius: 3px;
+}
+
+/* Settings page specific styles ----------------------------------- */
+.settings-page {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.settings-page input[type="checkbox"] {
+    width: 1rem;
+    height: 1rem;
+    accent-color: var(--purple);
+}
+
+.settings-page input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.settings-page input[type="number"]::-webkit-outer-spin-button,
+.settings-page input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }

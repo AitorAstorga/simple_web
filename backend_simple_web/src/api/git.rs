@@ -5,6 +5,7 @@ use std::path::Path;
 use git2::{Repository, Cred, FetchOptions, RemoteCallbacks};
 
 use crate::auth::Admin;
+use crate::scheduler::{get_scheduler, AutoPullConfig};
 use super::ROOT;
 
 #[derive(Deserialize)]
@@ -19,9 +20,9 @@ pub struct GitRepoConfig {
 #[derive(Serialize)]
 #[serde(crate = "rocket::serde")]
 pub struct GitStatus {
-    success: bool,
-    message: String,
-    commit_hash: Option<String>,
+    pub success: bool,
+    pub message: String,
+    pub commit_hash: Option<String>,
 }
 
 /// Setup a Git repository
@@ -146,6 +147,74 @@ pub async fn setup_git_repo(config: Json<GitRepoConfig>, _admin: Admin) -> Json<
     }
 }
 
+/// Test Git repository connection without setting up
+/// ### Arguments:
+/// - `config`: Git repository configuration to test
+/// ### Examples:
+/// - POST /api/git/test  JSON ```{"url":"https://github.com/user/repo.git","branch":"main"}```
+#[post("/git/test", data = "<config>")]
+pub async fn test_git_repo(config: Json<GitRepoConfig>, _admin: Admin) -> Json<GitStatus> {
+    info!("🧪 Testing Git repository connection: {}", config.url);
+    
+    // Create a temporary directory for testing
+    let temp_dir = tempfile::tempdir();
+    let temp_path = match temp_dir {
+        Ok(ref dir) => dir.path(),
+        Err(e) => {
+            error!("❌ Failed to create temporary directory: {}", e);
+            return Json(GitStatus {
+                success: false,
+                message: format!("Failed to create temporary directory: {}", e),
+                commit_hash: None,
+            });
+        }
+    };
+    
+    let mut builder = git2::build::RepoBuilder::new();
+    
+    // Setup credentials if provided
+    if config.username.is_some() && config.token.is_some() {
+        let username = config.username.as_ref().unwrap().clone();
+        let token = config.token.as_ref().unwrap().clone();
+        
+        let mut callbacks = RemoteCallbacks::new();
+        callbacks.credentials(move |_url, _username_from_url, _allowed_types| {
+            Cred::userpass_plaintext(&username, &token)
+        });
+        
+        let mut fetch_options = FetchOptions::new();
+        fetch_options.remote_callbacks(callbacks);
+        builder.fetch_options(fetch_options);
+    }
+    
+    // Set branch if specified
+    if let Some(branch) = &config.branch {
+        builder.branch(branch);
+    }
+    
+    // Try to clone to temporary directory (this tests connection without affecting the main repo)
+    match builder.clone(&config.url, temp_path) {
+        Ok(repo) => {
+            info!("✅ Repository connection test successful");
+            let head = repo.head().ok().and_then(|h| h.target()).map(|oid| oid.to_string());
+            // Temporary directory is automatically cleaned up when temp_dir is dropped
+            Json(GitStatus {
+                success: true,
+                message: "Connection test passed - repository is accessible".to_string(),
+                commit_hash: head,
+            })
+        }
+        Err(e) => {
+            error!("❌ Repository connection test failed: {}", e);
+            Json(GitStatus {
+                success: false,
+                message: format!("Connection test failed: {}", e),
+                commit_hash: None,
+            })
+        }
+    }
+}
+
 /// Pull latest changes from the Git repository
 /// ### Examples:
 /// - POST /api/git/pull
@@ -249,6 +318,122 @@ pub async fn pull_repo(_admin: Admin) -> Json<GitStatus> {
             Json(GitStatus {
                 success: false,
                 message: format!("Failed to update to latest changes: {}", e),
+                commit_hash: None,
+            })
+        }
+    }
+}
+
+/// Internal pull function for scheduled operations (no auth required)
+pub async fn pull_repo_internal() -> Result<GitStatus, String> {
+    info!("📥 Internal pull operation started");
+    
+    let repo_path = Path::new(ROOT);
+    
+    let repo = match Repository::open(repo_path) {
+        Ok(repo) => repo,
+        Err(e) => {
+            error!("❌ Failed to open repository: {}", e);
+            return Err(format!("No Git repository found: {}", e));
+        }
+    };
+    
+    // Get the remote
+    let mut remote = match repo.find_remote("origin") {
+        Ok(remote) => remote,
+        Err(e) => {
+            error!("❌ Failed to find remote 'origin': {}", e);
+            return Err(format!("No remote 'origin' found: {}", e));
+        }
+    };
+    
+    // Fetch the latest changes
+    match remote.fetch(&[] as &[&str], None, None) {
+        Ok(_) => info!("📡 Fetched latest changes"),
+        Err(e) => {
+            error!("❌ Failed to fetch: {}", e);
+            return Err(format!("Failed to fetch changes: {}", e));
+        }
+    }
+    
+    // Get the current branch
+    let head = match repo.head() {
+        Ok(head) => head,
+        Err(e) => {
+            error!("❌ Failed to get HEAD: {}", e);
+            return Err(format!("Failed to get current branch: {}", e));
+        }
+    };
+    
+    let branch_name = head.shorthand().unwrap_or("main");
+    let remote_branch_name = format!("origin/{}", branch_name);
+    
+    // Get the remote branch
+    let remote_branch = match repo.find_branch(&remote_branch_name, git2::BranchType::Remote) {
+        Ok(branch) => branch,
+        Err(e) => {
+            error!("❌ Failed to find remote branch {}: {}", remote_branch_name, e);
+            return Err(format!("Remote branch '{}' not found: {}", remote_branch_name, e));
+        }
+    };
+    
+    let remote_commit = match remote_branch.get().peel_to_commit() {
+        Ok(commit) => commit,
+        Err(e) => {
+            error!("❌ Failed to get remote commit: {}", e);
+            return Err(format!("Failed to get remote commit: {}", e));
+        }
+    };
+    
+    // Reset to the remote commit (hard reset)
+    match repo.reset(&remote_commit.as_object(), git2::ResetType::Hard, None) {
+        Ok(_) => {
+            info!("✅ Internal pull completed successfully");
+            Ok(GitStatus {
+                success: true,
+                message: "Successfully pulled latest changes".to_string(),
+                commit_hash: Some(remote_commit.id().to_string()),
+            })
+        }
+        Err(e) => {
+            error!("❌ Failed to reset to remote commit: {}", e);
+            Err(format!("Failed to update to latest changes: {}", e))
+        }
+    }
+}
+
+/// Get auto-pull configuration
+/// ### Examples:
+/// - GET /api/git/auto-pull
+#[get("/git/auto-pull")]
+pub async fn get_auto_pull_config(_admin: Admin) -> Json<AutoPullConfig> {
+    let scheduler = get_scheduler().await;
+    Json(scheduler.get_config().await)
+}
+
+/// Set auto-pull configuration
+/// ### Arguments:
+/// - `config`: Auto-pull configuration
+/// ### Examples:
+/// - POST /api/git/auto-pull  JSON ```{"enabled":true,"interval_minutes":30}```
+#[post("/git/auto-pull", data = "<config>")]
+pub async fn set_auto_pull_config(config: Json<AutoPullConfig>, _admin: Admin) -> Json<GitStatus> {
+    let scheduler = get_scheduler().await;
+    
+    match scheduler.update_config(config.into_inner()).await {
+        Ok(_) => {
+            info!("✅ Auto-pull configuration updated successfully");
+            Json(GitStatus {
+                success: true,
+                message: "Auto-pull configuration updated successfully".to_string(),
+                commit_hash: None,
+            })
+        }
+        Err(e) => {
+            error!("❌ Failed to update auto-pull configuration: {}", e);
+            Json(GitStatus {
+                success: false,
+                message: format!("Failed to update auto-pull configuration: {}", e),
                 commit_hash: None,
             })
         }
