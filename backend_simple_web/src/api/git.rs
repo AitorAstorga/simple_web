@@ -156,10 +156,9 @@ pub async fn setup_git_repo(config: Json<GitRepoConfig>, _admin: Admin) -> Json<
 pub async fn test_git_repo(config: Json<GitRepoConfig>, _admin: Admin) -> Json<GitStatus> {
     info!("🧪 Testing Git repository connection: {}", config.url);
     
-    // Create a temporary directory for testing
-    let temp_dir = tempfile::tempdir();
-    let temp_path = match temp_dir {
-        Ok(ref dir) => dir.path(),
+    // Create a temporary repository in memory to test remote access
+    let temp_dir = match tempfile::tempdir() {
+        Ok(dir) => dir,
         Err(e) => {
             error!("❌ Failed to create temporary directory: {}", e);
             return Json(GitStatus {
@@ -170,38 +169,54 @@ pub async fn test_git_repo(config: Json<GitRepoConfig>, _admin: Admin) -> Json<G
         }
     };
     
-    let mut builder = git2::build::RepoBuilder::new();
+    // Initialize a temporary repository
+    let repo = match Repository::init(temp_dir.path()) {
+        Ok(repo) => repo,
+        Err(e) => {
+            error!("❌ Failed to initialize temporary repository: {}", e);
+            return Json(GitStatus {
+                success: false,
+                message: format!("Failed to initialize test repository: {}", e),
+                commit_hash: None,
+            });
+        }
+    };
+    
+    // Add the remote
+    let mut remote = match repo.remote("origin", &config.url) {
+        Ok(remote) => remote,
+        Err(e) => {
+            error!("❌ Failed to add remote: {}", e);
+            return Json(GitStatus {
+                success: false,
+                message: format!("Invalid repository URL: {}", e),
+                commit_hash: None,
+            });
+        }
+    };
     
     // Setup credentials if provided
+    let mut callbacks = RemoteCallbacks::new();
     if config.username.is_some() && config.token.is_some() {
         let username = config.username.as_ref().unwrap().clone();
         let token = config.token.as_ref().unwrap().clone();
         
-        let mut callbacks = RemoteCallbacks::new();
         callbacks.credentials(move |_url, _username_from_url, _allowed_types| {
             Cred::userpass_plaintext(&username, &token)
         });
-        
-        let mut fetch_options = FetchOptions::new();
-        fetch_options.remote_callbacks(callbacks);
-        builder.fetch_options(fetch_options);
     }
     
-    // Set branch if specified
-    if let Some(branch) = &config.branch {
-        builder.branch(branch);
-    }
-    
-    // Try to clone to temporary directory (this tests connection without affecting the main repo)
-    match builder.clone(&config.url, temp_path) {
-        Ok(repo) => {
+    // Just connect and list remote refs (much faster than cloning)
+    let result = remote.connect_auth(git2::Direction::Fetch, Some(callbacks), None);
+    match result {
+        Ok(connection) => {
+            // Immediately disconnect to clean up resources
+            drop(connection);
             info!("✅ Repository connection test successful");
-            let head = repo.head().ok().and_then(|h| h.target()).map(|oid| oid.to_string());
-            // Temporary directory is automatically cleaned up when temp_dir is dropped
             Json(GitStatus {
                 success: true,
                 message: "Connection test passed - repository is accessible".to_string(),
-                commit_hash: head,
+                commit_hash: None,
             })
         }
         Err(e) => {

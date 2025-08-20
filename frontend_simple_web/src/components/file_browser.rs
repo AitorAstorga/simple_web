@@ -226,8 +226,19 @@ pub fn file_browser(props: &Props) -> Html {
             // Only start drag selection if clicking on empty space (not on file entries)
             if let Some(target) = e.target() {
                 if let Some(element) = target.dyn_ref::<web_sys::HtmlElement>() {
-                    // Check if clicked on the ul element (empty space)  
-                    if element.tag_name() == "UL" || element.class_name().contains("file-browser-container") {
+                    // Check if clicked on empty space (not on interactive elements)
+                    let tag_name = element.tag_name();
+                    let class_name = element.class_name();
+                    
+                    // Don't start drag selection if clicking on interactive elements
+                    if tag_name == "INPUT" || tag_name == "BUTTON" || tag_name == "LI" || 
+                       tag_name == "SPAN" || tag_name == "IMG" ||
+                       class_name.contains("cursor-pointer") || class_name.contains("btn") {
+                        return;
+                    }
+                    
+                    // Start drag selection for empty space (ASIDE, DIV with appropriate classes)
+                    if tag_name == "ASIDE" || tag_name == "DIV" {
                         is_drag_selecting.set(true);
                         drag_start_pos.set((e.client_x(), e.client_y()));
                         e.prevent_default();
@@ -260,18 +271,21 @@ pub fn file_browser(props: &Props) -> Html {
                 let start = *drag_start_pos;
                 let current = *drag_current_pos;
                 
-                let min_x = start.0.min(current.0);
-                let max_x = start.0.max(current.0);
-                let min_y = start.1.min(current.1);
-                let max_y = start.1.max(current.1);
+                let distance_x = (current.0 - start.0).abs();
+                let distance_y = (current.1 - start.1).abs();
+                let total_distance = ((distance_x * distance_x + distance_y * distance_y) as f64).sqrt();
                 
-                // For simplicity, if user dragged a reasonable distance, select all visible files
-                // In a real implementation, you'd calculate which file entries intersect with the rectangle
-                if (max_x - min_x).abs() > 10 || (max_y - min_y).abs() > 10 {
+                // Only select if the user actually dragged a significant distance (not just a click)
+                if total_distance > 50.0 {
+                    // For now, select all visible files when dragging
+                    // In a real implementation, you'd calculate which file entries intersect with the rectangle
                     let all_paths: Vec<String> = entries.iter()
                         .map(|entry| joined(&cwd, &entry.path))
                         .collect();
                     selected_files.set(all_paths);
+                } else {
+                    // If it was just a click (small movement), clear selection instead
+                    selected_files.set(Vec::new());
                 }
                 
                 is_drag_selecting.set(false);
@@ -291,7 +305,7 @@ pub fn file_browser(props: &Props) -> Html {
 
     /* -- render -------------------------------------------------------- */
     html! {
-        <div class="file-browser-container" 
+        <div class="file-browser-container h-full"
              onmousedown={on_mouse_down} 
              onmousemove={on_mouse_move} 
              onmouseup={on_mouse_up}>
