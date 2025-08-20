@@ -5,10 +5,12 @@ use wasm_bindgen_futures::spawn_local;
 use gloo::timers::callback::Interval;
 
 use crate::api::git::{api_git_setup, api_git_pull, api_git_test, api_get_auto_pull_config, api_set_auto_pull_config, GitRepoConfig, GitStatus, AutoPullConfig};
+use crate::api::auth;
 use crate::router::Route;
 
 #[function_component(Settings)]
 pub fn settings() -> Html {
+    let navigator = use_navigator().unwrap();
     let repo_url = use_state(|| String::new());
     let branch = use_state(|| String::new());
     let username = use_state(|| String::new());
@@ -290,10 +292,22 @@ pub fn settings() -> Html {
                         <h1 class="font-bold text-xl mb-2">{"⚙️ Settings"}</h1>
                         <p class="text-sm">{"Configure git repository and automatic synchronization"}</p>
                     </div>
-                    <div class="flex items-center">
+                    <div class="flex items-center gap-2">
                         <Link<Route> to={Route::WebEditor} classes="btn btn-secondary text-sm">
                             { "← Back to Editor" }
                         </Link<Route>>
+                        <button 
+                            class="btn btn-secondary text-sm"
+                            onclick={{
+                                let navigator = navigator.clone();
+                                Callback::from(move |_| {
+                                    auth::logout();
+                                    navigator.push(&Route::Login);
+                                })
+                            }}
+                        >
+                            { "🚪 Logout" }
+                        </button>
                     </div>
                 </div>
             </header>

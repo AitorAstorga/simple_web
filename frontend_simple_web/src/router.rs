@@ -3,6 +3,7 @@ use crate::pages::login::Login;
 use crate::pages::web_editor::WebEditor;
 use crate::pages::about::About;
 use crate::pages::settings::Settings;
+use crate::components::auth_guard::AuthGuard;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
@@ -33,9 +34,17 @@ pub fn app_router() -> Html {
 fn switch(routes: Route) -> Html {
     match routes {
         Route::Login => html! { <Login /> },
-        Route::WebEditor => html! { <WebEditor /> },
+        Route::WebEditor => html! {
+            <AuthGuard>
+                <WebEditor />
+            </AuthGuard>
+        },
         Route::About => html! { <About /> },
-        Route::Settings => html! { <Settings /> },
+        Route::Settings => html! {
+            <AuthGuard>
+                <Settings />
+            </AuthGuard>
+        },
         Route::NotFound => html! { <h1>{ "404 - Page not found" }</h1> },
     }
 }

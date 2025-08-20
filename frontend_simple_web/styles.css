@@ -41,6 +41,48 @@ body {
     overflow-x: hidden;
 }
 
+/* Authentication UI ----------------------------------------------- */
+.auth-notice {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: var(--bg-dark);
+}
+
+.auth-notice-card {
+    background-color: var(--bg-card);
+    padding: 2rem;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    max-width: 400px;
+    width: 90%;
+}
+
+.auth-notice-card h2 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: var(--text-main);
+}
+
+.auth-notice-card p {
+    margin-bottom: 1.5rem;
+    color: #b0b0b0;
+}
+
+.auth-header {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--bg-card);
+    margin-bottom: 1rem;
+}
+
+.authenticated-content {
+    min-height: 100vh;
+}
+
 header {
     display: flex;
     align-items: center;

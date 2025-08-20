@@ -20,14 +20,26 @@ pub fn set_token(token: &str) {
         .expect("failed to write auth token to localStorage");
 }
 
-/// Retrieve the raw token (if any)
+/// Retrieve the raw token (if any) and check if it's still valid
 pub fn get_token() -> String {
     LocalStorage::get::<String>(TOKEN_KEY).ok().unwrap_or("".to_owned())
 }
 
-/// Clear the stored token
-pub fn clear_token() {
+/// Clear all authentication data from localStorage
+pub fn clear_auth_data() {
     LocalStorage::delete(TOKEN_KEY);
+    // Clear any other user-related data if needed
+    // Note: We keep api_url and editor_url as they're config, not auth data
+}
+
+/// Check if user is currently authenticated
+pub fn is_authenticated() -> bool {
+    !get_token().is_empty()
+}
+
+/// Logout user by clearing all auth data
+pub fn logout() {
+    clear_auth_data();
 }
 
 /// Login with password and get a token
@@ -52,8 +64,13 @@ pub async fn login(password: &str) -> Result<String, String> {
             .map_err(|e| format!("Failed to parse response: {}", e))?;
         
         set_token(&token_response.token);
+        
+        // Refresh config after successful login
+        crate::config_file::load_config().await;
+        
         Ok(token_response.token)
     } else {
+        clear_auth_data(); // Clear any stale data on failed login
         Err(format!("Login failed: {}", response.status()))
     }
 }
