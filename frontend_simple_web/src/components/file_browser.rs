@@ -146,8 +146,27 @@ pub fn file_browser(props: &Props) -> Html {
         };
 
         if svg.is_empty() {
+            // Enhanced file type emoji icons for better recognition
+            let emoji = match ext {
+                &"toml" => "⚙️ ",
+                &"yaml" | &"yml" => "📋 ",
+                &"dockerfile" | &"Dockerfile" => "🐳 ",
+                &"env" => "🔧 ",
+                &"txt" | &"log" => "📄 ",
+                &"xml" => "📰 ",
+                &"pdf" => "📄 ",
+                &"zip" | &"tar" | &"gz" => "📦 ",
+                &"sh" | &"bash" => "🔧 ",
+                &"py" => "🐍 ",
+                &"go" => "🔷 ",
+                &"java" => "☕ ",
+                &"php" => "🐘 ",
+                &"rb" => "💎 ",
+                &"cpp" | &"c" | &"h" => "⚡ ",
+                _ => "📄 ",
+            };
             return html! {
-                { "📄 " }
+                { emoji }
             };
         }
 
@@ -170,7 +189,12 @@ pub fn file_browser(props: &Props) -> Html {
     let drop_on_ul     = mk_drop.clone()((*cwd).clone());
 
     fn get_file_name(entry: &FileEntry) -> String {
-        entry.path.clone().trim_start_matches('/').into()
+        // Extract just the filename/dirname from the full path
+        entry.path
+            .rsplit('/')
+            .next()
+            .unwrap_or(&entry.path)
+            .to_string()
     }
 
     /* -- bulk operations ------------------------------------------------ */
@@ -416,7 +440,7 @@ pub fn file_browser(props: &Props) -> Html {
                             onclick={onclick}>
                             <div class="flex items-center gap-2">
                                 <input type="checkbox" checked={is_selected} onchange={on_select} onclick={Callback::from(|e: MouseEvent| e.stop_propagation())} />
-                                <span>{ icon_html }{ &entry.path }</span>
+                                <span>{ icon_html }{ get_file_name(&entry) }</span>
                             </div>
                             { del_btn }
                         </li>

@@ -66,14 +66,34 @@ fn html_highlight(src: &str) -> String {
     #[derive(PartialEq)]
     enum State { Code, Str(char), BlockComment, LineComment }
 
-    const KW_JS  : &[&str] = &["const","let","function","if","else","return","for","while",
-                               "async","await","import","export","class","new","try","catch",
-                               "switch","case","break"];
-    const KW_CSS : &[&str] = &["display","position","color","background","border","padding",
-                               "margin","flex","grid","width","height","font","animation",
-                               "transform"];
-    const KW_HTML: &[&str] = &["html","head","body","div","span","h1","h2","h3","p","ul","li",
-                               "script","style","link"];
+    // JavaScript/TypeScript keywords
+    const KW_JS: &[&str] = &["const","let","var","function","if","else","return","for","while",
+                             "async","await","import","export","class","new","try","catch",
+                             "switch","case","break","continue","do","typeof","instanceof",
+                             "this","super","extends","implements","interface","type","enum"];
+    
+    // CSS properties and values
+    const KW_CSS: &[&str] = &["display","position","color","background","border","padding",
+                              "margin","flex","grid","width","height","font","animation",
+                              "transform","opacity","z-index","overflow","float","clear",
+                              "text-align","line-height","font-size","font-weight","cursor"];
+    
+    // HTML tags
+    const KW_HTML: &[&str] = &["html","head","body","div","span","h1","h2","h3","h4","h5","h6",
+                               "p","ul","ol","li","a","img","script","style","link","meta",
+                               "title","nav","header","footer","section","article","aside",
+                               "main","table","tr","td","th","form","input","button","select"];
+    
+    // YAML keywords
+    const KW_YAML: &[&str] = &["true","false","null","yes","no","on","off"];
+    
+    // TOML keywords  
+    const KW_TOML: &[&str] = &["true","false"];
+    
+    // Dockerfile keywords
+    const KW_DOCKERFILE: &[&str] = &["FROM","RUN","CMD","LABEL","EXPOSE","ENV","ADD","COPY",
+                                     "ENTRYPOINT","VOLUME","USER","WORKDIR","ARG","ONBUILD",
+                                     "STOPSIGNAL","HEALTHCHECK","SHELL"];
 
     let mut out   = String::with_capacity(src.len() * 2);
     let mut tok   = String::new();
@@ -83,7 +103,7 @@ fn html_highlight(src: &str) -> String {
     /* push the current token with an optional <span class=""> wrapper */
     let push_tok = |out: &mut String, tok: &mut String| {
         if tok.is_empty() { return; }
-        let class = classify(tok, KW_JS, KW_CSS, KW_HTML);
+        let class = classify_enhanced(tok, KW_JS, KW_CSS, KW_HTML, KW_YAML, KW_TOML, KW_DOCKERFILE);
         if let Some(c) = class {
             out.push_str(&format!(r#"<span class="{c}">{}</span>"#, esc(tok)));
         } else {
@@ -96,37 +116,71 @@ fn html_highlight(src: &str) -> String {
         match state {
             /* ───────────── ordinary code ───────────── */
             State::Code => match ch {
-                '\'' | '"' | '`' => { push_tok(&mut out, &mut tok); tok.push(ch); state = State::Str(ch); }
-                '/' if it.peek() == Some(&'/') => { push_tok(&mut out, &mut tok); tok.push_str("//"); it.next(); state = State::LineComment; }
-                '/' if it.peek() == Some(&'*') => { push_tok(&mut out, &mut tok); tok.push_str("/*"); it.next(); state = State::BlockComment; }
+                '\'' | '"' | '`' => { 
+                    push_tok(&mut out, &mut tok); 
+                    tok.push(ch); 
+                    state = State::Str(ch); 
+                }
+                '/' if it.peek() == Some(&'/') => { 
+                    push_tok(&mut out, &mut tok); 
+                    out.push_str(r#"<span class="comment">//"#);
+                    it.next(); 
+                    state = State::LineComment; 
+                }
+                '/' if it.peek() == Some(&'*') => { 
+                    push_tok(&mut out, &mut tok); 
+                    out.push_str(r#"<span class="comment">/*"#);
+                    it.next(); 
+                    state = State::BlockComment; 
+                }
+                '#' => {
+                    push_tok(&mut out, &mut tok);
+                    out.push_str(r#"<span class="comment">#"#);
+                    state = State::LineComment;
+                }
                 '<' => {
                     push_tok(&mut out, &mut tok);
                     tok.push(ch);
-                    while let Some(nc) = it.next() { tok.push(nc); if nc == '>' { break; } }
+                    while let Some(nc) = it.next() { 
+                        tok.push(nc); 
+                        if nc == '>' { break; } 
+                    }
                     push_tok(&mut out, &mut tok);
                 }
-                c if c.is_whitespace() || is_punct(c) => { push_tok(&mut out, &mut tok); out.push(c); }
+                c if c.is_whitespace() || is_punct(c) => { 
+                    push_tok(&mut out, &mut tok); 
+                    out.push(c); 
+                }
                 _ => tok.push(ch),
             },
 
             /* ───────────── string literal ───────────── */
             State::Str(q) => {
                 tok.push(ch);
-                if ch == q && !tok.ends_with("\\") { push_tok(&mut out, &mut tok); state = State::Code; }
+                if ch == q && !tok.ends_with("\\") { 
+                    out.push_str(&format!(r#"<span class="string">{}</span>"#, esc(&tok)));
+                    tok.clear();
+                    state = State::Code; 
+                }
             }
 
             /* ───────────── // line comment ───────────── */
             State::LineComment => {
-                tok.push(ch);
-                if ch == '\n' { push_tok(&mut out, &mut tok); state = State::Code; }
+                out.push(ch);
+                if ch == '\n' { 
+                    out.push_str("</span>");
+                    state = State::Code; 
+                }
             }
 
             /* ───────────── /* block comment */ ───────────── */
             State::BlockComment => {
-                tok.push(ch);
+                out.push(ch);
                 if ch == '*' && it.peek() == Some(&'/') {
-                    tok.push('/'); it.next();
-                    push_tok(&mut out, &mut tok); state = State::Code;
+                    out.push('/'); 
+                    it.next();
+                    out.push_str("</span>");
+                    state = State::Code;
                 }
             }
         }
@@ -142,12 +196,81 @@ fn esc(s: &str) -> String {
      .replace('>', "&gt;")
 }
 
-fn classify(tok: &str, js:&[&str], css:&[&str], html:&[&str]) -> Option<&'static str> {
-    let clean = tok.trim_matches(&['<','>','/','{','}','(','[',']',';'] as &[_]);
-    if js.contains(&clean)           { Some("kw")   }
-    else if css.contains(&clean)     { Some("kw")   }
-    else if html.contains(&clean)    { Some("tag")  }
-    else                             { None         }
+fn classify_enhanced(tok: &str, js: &[&str], css: &[&str], html: &[&str], yaml: &[&str], toml: &[&str], dockerfile: &[&str]) -> Option<&'static str> {
+    let clean = tok.trim_matches(&['<','>','/','{','}','(','[',']',';',':','=','"','\'','`',','] as &[_]);
+    
+    // Check for hexadecimal colors - Unicode safe
+    if clean.starts_with('#') && clean.len() >= 4 && clean.len() <= 7 {
+        if clean.chars().skip(1).all(|c| c.is_ascii_hexdigit()) {
+            return Some("color");
+        }
+    }
+    
+    // Check for RGB/RGBA functions
+    if clean.starts_with("rgb(") || clean.starts_with("rgba(") || 
+       clean.starts_with("hsl(") || clean.starts_with("hsla(") {
+        return Some("color");
+    }
+    
+    // Check for URLs
+    if clean.starts_with("http://") || clean.starts_with("https://") || 
+       clean.starts_with("ftp://") || clean.starts_with("file://") {
+        return Some("url");
+    }
+    
+    // Check for numbers (including units) - Unicode safe
+    if clean.parse::<f64>().is_ok() {
+        return Some("number");
+    }
+    
+    // Check for CSS units (px, em, etc.) - Unicode safe
+    let units = ["px", "em", "rem", "vh", "vw", "%", "pt", "pc", "in", "cm", "mm"];
+    for unit in &units {
+        if clean.ends_with(unit) {
+            let prefix = &clean[..clean.len() - unit.len()];
+            if prefix.parse::<f64>().is_ok() {
+                return Some("number");
+            }
+        }
+    }
+    
+    // Check for degrees - Unicode safe
+    if clean.ends_with("deg") {
+        let prefix = &clean[..clean.len() - 3];
+        if prefix.parse::<f64>().is_ok() {
+            return Some("number");
+        }
+    }
+    
+    // Check for CSS pseudo-classes and pseudo-elements
+    if clean.starts_with(':') || clean.starts_with("::") {
+        return Some("pseudo");
+    }
+    
+    // Check for CSS media queries
+    if clean == "@media" || clean == "@keyframes" || clean == "@import" || clean == "@font-face" {
+        return Some("atrule");
+    }
+    
+    // Check for various keywords
+    if js.contains(&clean) || css.contains(&clean) || yaml.contains(&clean) || 
+       toml.contains(&clean) || dockerfile.contains(&clean) {
+        Some("keyword")
+    } else if html.contains(&clean) {
+        Some("tag")
+    } else if clean.starts_with('#') && clean.len() > 1 {
+        Some("comment")
+    } else if clean.contains('@') && !clean.starts_with('@') {
+        Some("attr")  // decorators, email addresses, etc.
+    } else if clean.starts_with('.') && clean.len() > 1 {
+        Some("selector")  // CSS classes
+    } else if clean.starts_with('#') && clean.len() > 1 && !clean.chars().skip(1).all(|c| c.is_ascii_hexdigit()) {
+        Some("selector")  // CSS IDs (not hex colors)
+    } else if clean.chars().all(|c| c.is_uppercase() || c == '_') && clean.len() > 1 {
+        Some("constant")  // CONSTANTS
+    } else {
+        None
+    }
 }
 
 fn is_punct(c: char) -> bool {

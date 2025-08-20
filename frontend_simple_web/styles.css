@@ -102,7 +102,7 @@ header p {
 }
 
 header h1 {
-    font-size: 1.5rem;
+    font-size: 2rem;
     font-weight: 600;
 }
 
@@ -532,40 +532,112 @@ textarea {
     outline: none;
 }
 
-/* ────────── syntax colours ────────── */
+/* ────────── Enhanced syntax highlighting ────────── */
+
+/* Keywords (JavaScript, CSS, YAML, TOML, Dockerfile) */
+.keyword {
+    color: #ff6b6b;  /* Bright red for keywords */
+    font-weight: 600;
+}
+
+/* Legacy support */
 .kw {
-    color: #d73a49;
+    color: #ff6b6b;
+    font-weight: 600;
 }
 
-/* keyword  */
-.string {
-    color: #032f62;
-}
-
-.attr {
-    color: #795e26;
-}
-
-/* attribute name  */
-.comment {
-    color: #6a737d;
-}
-
-/* already there – keep for completeness */
-.string {
-    color: #032f62;
-}
-
-/* already there */
+/* HTML tags */
 .tag {
-    color: #22863a;
+    color: #51cf66;  /* Green for HTML tags */
+    font-weight: 500;
 }
 
-/* already there */
+/* String literals */
+.string {
+    color: #ffd93d;  /* Yellow for strings */
+}
 
-/* optional tweak – make angle brackets faint so tags pop */
+/* Numbers */
+.number {
+    color: #74c0fc;  /* Light blue for numbers */
+    font-weight: 500;
+}
+
+/* Comments */
+.comment {
+    color: #868e96;  /* Gray for comments */
+    font-style: italic;
+}
+
+/* Attributes, decorators, CSS selectors */
+.attr {
+    color: #ff8cc8;  /* Pink for attributes */
+}
+
+/* CSS selectors (.class, #id) */
+.selector {
+    color: #da77f2;  /* Purple for CSS selectors */
+    font-weight: 500;
+}
+
+/* Colors (hex, rgb, hsl) */
+.color {
+    color: #20c997;  /* Teal for color values */
+    font-weight: 600;
+    background: rgba(32, 201, 151, 0.1);
+    padding: 1px 3px;
+    border-radius: 3px;
+}
+
+/* URLs */
+.url {
+    color: #fd7e14;  /* Orange for URLs */
+    text-decoration: underline;
+}
+
+/* CSS pseudo-classes and pseudo-elements */
+.pseudo {
+    color: #e599f7;  /* Light purple for :hover, ::before, etc. */
+    font-style: italic;
+}
+
+/* CSS at-rules (@media, @keyframes, etc.) */
+.atrule {
+    color: #ff8787;  /* Light red for @rules */
+    font-weight: 700;
+}
+
+/* Constants (UPPERCASE_VARS) */
+.constant {
+    color: #91a7ff;  /* Light blue for constants */
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+/* Enhanced number highlighting */
+.number {
+    color: #74c0fc;  /* Light blue for numbers */
+    font-weight: 500;
+    background: rgba(116, 192, 252, 0.1);
+    padding: 1px 2px;
+    border-radius: 2px;
+}
+
+/* Selection highlighting */
 .editor-highlight::selection {
-    background: #b3d4fc;
+    background: rgba(116, 192, 252, 0.3);  /* Light blue selection */
+}
+
+/* Focus and hover states for better UX */
+.editor-container:hover .editor-highlight {
+    border-left: 2px solid var(--blue);
+    transition: border-left 0.2s ease;
+}
+
+/* Enhanced visual feedback */
+.editor-container:focus-within .editor-highlight {
+    box-shadow: inset 0 0 0 1px rgba(116, 192, 252, 0.3);
+    transition: box-shadow 0.2s ease;
 }
 
 

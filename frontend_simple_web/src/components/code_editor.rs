@@ -157,22 +157,22 @@ pub fn code_editor(props: &Props) -> Html {
         <div class="flex flex-col h-full">
             /* toolbar */
             <div class="mb-2 flex gap-2">
-                <button class="btn btn-primary" onclick={on_new_folder.clone()}>{ "New Folder" }</button>
-                <button class="btn btn-primary" onclick={onsave.clone()}>{ "New File" }</button>
-                <button class="btn btn-primary" onclick={on_click_upload.clone()}>{ "Upload" }</button>
-                {
-                    if sel_path.is_some() {
-                        html! {
-                            <>
-                                <button class="btn btn-primary" onclick={onsave.clone()}>{ "Save" }</button>
-                                <button class="btn btn-secondary" onclick={onmove.clone()}>{ "Move" }</button>
-                                <button class="btn btn-danger"  onclick={ondelete.clone()}>{ "Delete" }</button>
-                            </>
+                    <button class="btn btn-primary" onclick={on_new_folder.clone()}>{ "New Folder" }</button>
+                    <button class="btn btn-primary" onclick={onsave.clone()}>{ "New File" }</button>
+                    <button class="btn btn-primary" onclick={on_click_upload.clone()}>{ "Upload" }</button>
+                    {
+                        if sel_path.is_some() {
+                            html! {
+                                <>
+                                    <button class="btn btn-primary" onclick={onsave.clone()}>{ "Save" }</button>
+                                    <button class="btn btn-secondary" onclick={onmove.clone()}>{ "Move" }</button>
+                                    <button class="btn btn-danger"  onclick={ondelete.clone()}>{ "Delete" }</button>
+                                </>
+                            }
+                        } else {
+                            html!{}
                         }
-                    } else {
-                        html!{}
                     }
-                }
             </div>
 
             // hidden file input for upload

@@ -293,11 +293,8 @@ pub fn settings() -> Html {
                         <p class="text-sm">{"Configure git repository and automatic synchronization"}</p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <Link<Route> to={Route::WebEditor} classes="btn btn-secondary text-sm">
-                            { "← Back to Editor" }
-                        </Link<Route>>
                         <button 
-                            class="btn btn-secondary text-sm"
+                            class="btn btn-danger text-sm"
                             onclick={{
                                 let navigator = navigator.clone();
                                 Callback::from(move |_| {
@@ -308,6 +305,9 @@ pub fn settings() -> Html {
                         >
                             { "🚪 Logout" }
                         </button>
+                        <Link<Route> to={Route::WebEditor} classes="btn btn-secondary text-sm">
+                            { "← Back to Editor" }
+                        </Link<Route>>
                     </div>
                 </div>
             </header>
