@@ -285,14 +285,16 @@ pub fn settings() -> Html {
     html! {
         <div class="settings-page p-3">
             <header class="mb-4">
-                <div class="flex items-start justify-between mb-4">
+                <div class="flex items-center justify-between mb-4 w-full">
                     <div>
                         <h1 class="font-bold text-xl mb-2">{"⚙️ Settings"}</h1>
                         <p class="text-sm">{"Configure git repository and automatic synchronization"}</p>
                     </div>
-                    <Link<Route> to={Route::WebEditor} classes="btn btn-secondary text-sm">
-                        { "← Back to Editor" }
-                    </Link<Route>>
+                    <div class="flex items-center">
+                        <Link<Route> to={Route::WebEditor} classes="btn btn-secondary text-sm">
+                            { "← Back to Editor" }
+                        </Link<Route>>
+                    </div>
                 </div>
             </header>
 

@@ -311,6 +311,14 @@ textarea:focus-visible {
     border-top: 1px solid var(--surface-hov);
 }
 
+.border-b {
+    border-bottom: 1px solid var(--surface-hov);
+}
+
+.pb-2 {
+    padding-bottom: 0.5rem;
+}
+
 .rounded {
     border-radius: .25rem;
 }
@@ -330,6 +338,11 @@ textarea:focus-visible {
 }
 
 /* Specific component styling ====================================== */
+
+/* File-browser header */
+.file-browser-container-header {
+    height: 47px;
+}
 
 /* File‑browser list items */
 li {

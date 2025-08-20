@@ -38,6 +38,9 @@ async fn rocket() -> _ {
     // Initialize the git scheduler
     scheduler::init_scheduler().await.expect("Failed to initialize git scheduler");
 
+    // Initialize token store for authentication
+    let token_store = auth::TokenStore::new();
+
     let allowed_origins = AllowedOrigins::some_exact(&[
         // local SPA on port 80
         "http://127.0.0.1",
@@ -67,6 +70,10 @@ async fn rocket() -> _ {
 
     rocket::build()
         .attach(cors)
+        .manage(token_store)
+        .mount("/api/auth", routes![
+            auth::login
+        ])
         .mount("/api", routes![
             api::list_files,
             api::get_file,
