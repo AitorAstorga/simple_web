@@ -85,7 +85,11 @@ async fn rocket() -> _ {
             api::pull_repo,
             api::test_git_repo,
             api::get_auto_pull_config,
-            api::set_auto_pull_config
+            api::set_auto_pull_config,
+            api::get_git_status,
+            api::commit_changes,
+            api::push_repo,
+            api::force_pull_repo
         ])
         // Anything under `public_site/` is  always available under /
         .mount("/", FileServer::from("/public_site"))
