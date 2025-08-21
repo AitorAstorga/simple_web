@@ -489,6 +489,10 @@ textarea {
     line-height: 1.45;
     /* keep lines tall enough for most fonts */
     margin: 0;
+    /* Ensure consistent font rendering */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
 }
 
 /* ────────── colourised *copy* ────────── */
@@ -504,10 +508,19 @@ textarea {
     pointer-events: none;
     /* clicks fall through */
     user-select: none;
-    /* don’t select this layer */
+    /* don't select this layer */
     overflow: hidden;
     /* textarea handles scrolling */
     margin: 0;
+    /* Perfect layout sync */
+    box-sizing: border-box;
+    font: inherit;
+    /* Match textarea font exactly */
+    letter-spacing: inherit;
+    word-spacing: inherit;
+    /* Ensure no font variations */
+    font-variant-ligatures: none;
+    font-feature-settings: normal;
 }
 
 /* ────────── real <textarea> ────────── */
@@ -526,6 +539,16 @@ textarea {
     overflow: auto;
     margin: 0;
     /* remove UA-default margin */
+    /* Perfect layout sync */
+    box-sizing: border-box;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    tab-size: 4;
+    /* Prevent font rendering differences */
+    font-variant-ligatures: none;
+    font-feature-settings: normal;
+    letter-spacing: inherit;
+    word-spacing: inherit;
 }
 
 .editor-input:focus {
@@ -629,15 +652,21 @@ textarea {
 }
 
 /* Focus and hover states for better UX */
-.editor-container:hover .editor-highlight {
-    border-left: 2px solid var(--blue);
-    transition: border-left 0.2s ease;
+.editor-container:hover .editor-input {
+    border-color: var(--purple);
+    transition: border-color 0.2s ease;
 }
 
 /* Enhanced visual feedback */
-.editor-container:focus-within .editor-highlight {
-    box-shadow: inset 0 0 0 1px rgba(116, 192, 252, 0.3);
-    transition: box-shadow 0.2s ease;
+.editor-container:focus-within .editor-input {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 2px rgba(0, 56, 168, 0.2);
+    transition: all 0.2s ease;
+}
+
+/* Improved cursor visibility */
+.editor-input:focus {
+    caret-color: var(--text-main);
 }
 
 

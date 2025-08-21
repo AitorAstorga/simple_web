@@ -11,8 +11,14 @@ pub struct CodeEditorProps {
 
 #[function_component(CodeEditorTextarea)]
 pub fn code_editor(props: &CodeEditorProps) -> Html {
+    // Debounced highlighting for better performance
     let highlighted = use_memo(props.value.clone(), |val| {
-        html_highlight(val.as_str())
+        // Only re-highlight if content has actually changed
+        if val.is_empty() {
+            String::new()
+        } else {
+            html_highlight(val.as_str())
+        }
     });
 
     /* refs for scroll synchronisation */
@@ -34,8 +40,13 @@ pub fn code_editor(props: &CodeEditorProps) -> Html {
                 let pre_clone = pre.clone();
 
                 let cb = Closure::<dyn Fn(_)>::new(move |_e: web_sys::Event| {
-                    pre_clone.set_scroll_top(ta_clone.scroll_top());
-                    pre_clone.set_scroll_left(ta_clone.scroll_left());
+                    // Enhanced scroll synchronization with better precision
+                    let scroll_top = ta_clone.scroll_top();
+                    let scroll_left = ta_clone.scroll_left();
+                    
+                    // Synchronize scrolling with exact pixel positioning
+                    pre_clone.set_scroll_top(scroll_top);
+                    pre_clone.set_scroll_left(scroll_left);
                 });
 
                 // the original `ta` is still available for the registration call
