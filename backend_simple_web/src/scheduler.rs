@@ -146,10 +146,6 @@ impl GitScheduler {
     pub async fn get_config(&self) -> AutoPullConfig {
         self.config.read().await.clone()
     }
-
-    pub async fn is_enabled(&self) -> bool {
-        self.config.read().await.enabled
-    }
 }
 
 // Global scheduler instance

@@ -11,6 +11,7 @@ pub struct ColorTheme {
 pub fn get_available_themes() -> Vec<ColorTheme> {
     vec![
         get_dark_theme(),
+        get_ochite_miro_theme(),
         get_light_theme(),
     ]
 }
@@ -18,6 +19,7 @@ pub fn get_available_themes() -> Vec<ColorTheme> {
 pub fn get_theme_by_name(name: &str) -> ColorTheme {
     match name {
         "light" => get_light_theme(),
+        "ochite_miro" => get_ochite_miro_theme(),
         _ => get_dark_theme(), // default
     }
 }
@@ -60,6 +62,27 @@ fn get_light_theme() -> ColorTheme {
     
     ColorTheme {
         name: "light".to_string(),
+        colors,
+    }
+}
+
+fn get_ochite_miro_theme() -> ColorTheme {
+    let mut colors = HashMap::new();
+    colors.insert("keyword".to_string(), "#5A7E95".to_string());
+    colors.insert("string".to_string(), "#F5EFE9".to_string());
+    colors.insert("number".to_string(), "#5F5888".to_string());
+    colors.insert("comment".to_string(), "#55C5DF".to_string());
+    colors.insert("tag".to_string(), "#2B6DC2".to_string());
+    colors.insert("attr".to_string(), "#E6CFDE".to_string());
+    colors.insert("selector".to_string(), "#A6C7DA".to_string());
+    colors.insert("color".to_string(), "#513D8D".to_string());
+    colors.insert("url".to_string(), "#937EBBc".to_string());
+    colors.insert("pseudo".to_string(), "#0D0717".to_string());
+    colors.insert("atrule".to_string(), "#2B6DC2".to_string());
+    colors.insert("constant".to_string(), "#C24791".to_string());
+    
+    ColorTheme {
+        name: "ochite_miro".to_string(),
         colors,
     }
 }
