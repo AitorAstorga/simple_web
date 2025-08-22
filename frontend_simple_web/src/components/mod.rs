@@ -4,3 +4,5 @@ pub mod code_editor;
 pub mod code_editor_textarea;
 pub mod git_manager;
 pub mod auth_guard;
+pub mod theme_selector;
+pub mod theme_editor;

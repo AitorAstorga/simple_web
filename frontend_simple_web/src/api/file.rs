@@ -5,7 +5,7 @@ use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{js_sys::Reflect, FileList};
 
-use crate::{api::auth::get_token, config_file::get_env_var};
+use crate::{api::auth::{get_token, handle_auth_error}, config_file::get_env_var};
 
 // Helper method to reload the page
 fn reload() { let _ = web_sys::window().map(|w| w.location().reload()); }
@@ -29,8 +29,16 @@ pub fn post_api_file(path: impl Into<String>, content: impl Into<String>) {
             Err(_) => return,
         };
 
-        let _ = req.send().await;
-        reload();
+        match req.send().await {
+            Ok(response) => {
+                if !handle_auth_error(response.status()) {
+                    reload();
+                }
+            }
+            Err(_) => {
+                error!("Failed to send request");
+            }
+        }
     });
 }
 
@@ -38,20 +46,36 @@ pub async fn get_api_file(path: &str) -> Result<Response, Error> {
     let api_url = get_env_var("API_URL");
     let url = format!("{api_url}/api/file?path={}", encode(path));
     let auth = get_token();
-    Request::get(&url)
+    
+    let response = Request::get(&url)
         .header("Authorization", &auth)
         .send()
-        .await
+        .await?;
+    
+    // Check for authentication errors
+    if handle_auth_error(response.status()) {
+        return Err(Error::GlooError(format!("Authentication failed").into()));
+    }
+    
+    Ok(response)
 }
 
 pub async fn get_api_files(path: &str) -> Result<Response, Error> {
     let api_url = get_env_var("API_URL");
     let url = format!("{api_url}/api/files?path={}", encode(path));
     let auth = get_token();
-    Request::get(&url)
+    
+    let response = Request::get(&url)
         .header("Authorization", &auth)
         .send()
-        .await
+        .await?;
+    
+    // Check for authentication errors
+    if handle_auth_error(response.status()) {
+        return Err(Error::GlooError(format!("Authentication failed").into()));
+    }
+    
+    Ok(response)
 }
 
 pub fn api_move(from: impl Into<String>, to: impl Into<String>) {
@@ -64,13 +88,20 @@ pub fn api_move(from: impl Into<String>, to: impl Into<String>) {
 
     spawn_local(async move {
         let body = serde_json::json!({ "from": &from, "to": &to }).to_string();
-        let _ = Request::post(&format!("{api_url}/api/move"))
+        match Request::post(&format!("{api_url}/api/move"))
             .header("Authorization", &auth)
             .header("Content-Type", "application/json")
             .body(body)
             .expect("failed to build move-request")
             .send()
-            .await;
+            .await {
+            Ok(response) => {
+                handle_auth_error(response.status());
+            }
+            Err(_) => {
+                error!("Failed to move file");
+            }
+        }
     });
 }
 
@@ -81,11 +112,19 @@ pub fn api_delete(path: impl Into<String>) {
 
     spawn_local(async move {
         let url = format!("{api_url}/api/file?path={}", encode(&path));
-        let _ = Request::delete(&url)
+        match Request::delete(&url)
             .header("Authorization", &auth)
             .send()
-            .await;
-        reload();
+            .await {
+            Ok(response) => {
+                if !handle_auth_error(response.status()) {
+                    reload();
+                }
+            }
+            Err(_) => {
+                error!("Failed to delete file");
+            }
+        }
     });
 }
 
@@ -134,7 +173,18 @@ pub fn api_upload(files: FileList, base_path: Option<String>) {
             Ok(r) => r,
             Err(_) => return,
         };
-        let _ = req.send().await;
-        //reload();
+        match req.send().await {
+            Ok(response) => {
+                if handle_auth_error(response.status()) {
+                    error!("Authentication failed during upload");
+                } else if !response.ok() {
+                    error!("Upload failed with status: {}", response.status());
+                }
+                // Note: Commented out reload for uploads as it might interrupt user flow
+            }
+            Err(_) => {
+                error!("Failed to upload files");
+            }
+        }
     });
 }

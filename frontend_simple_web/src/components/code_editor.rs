@@ -1,5 +1,5 @@
 // frontend_simple_web/src/components/code_editor.rs
-use gloo::console::{debug, error, log};
+use gloo::console::{debug, error};
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{Event, HtmlInputElement};
 use yew::prelude::*;

@@ -7,6 +7,7 @@ use gloo::timers::callback::Interval;
 use crate::api::git::{api_git_setup, api_git_pull, api_git_test, api_get_git_status, api_commit_changes, api_push_changes, api_force_pull, GitRepoConfig, GitStatus, GitRepoStatus};
 use crate::api::auth;
 use crate::router::Route;
+use crate::components::theme_editor::ThemeEditor;
 
 #[function_component(Settings)]
 pub fn settings() -> Html {
@@ -881,6 +882,12 @@ pub fn settings() -> Html {
                     </div>
                 </section>
 
+
+                // Editor Theme Configuration
+                <section class="bg-card p-4 rounded border">
+                    <h2 class="font-bold mb-4">{"🎨 Editor Theme Configuration"}</h2>
+                    <ThemeEditor />
+                </section>
 
                 // Actions
                 <section class="bg-card p-4 rounded border">

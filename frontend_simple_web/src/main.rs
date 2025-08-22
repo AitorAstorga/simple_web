@@ -3,6 +3,7 @@ mod components;
 mod pages;
 mod router;
 mod config_file;
+mod highlighting;
 
 use crate::router::AppRouter;
 use yew::prelude::*;

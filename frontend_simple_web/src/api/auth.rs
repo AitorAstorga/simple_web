@@ -37,9 +37,30 @@ pub fn is_authenticated() -> bool {
     !get_token().is_empty()
 }
 
+/// Handle API response and check for authentication errors
+pub fn handle_auth_error(status: u16) -> bool {
+    if status == 401 || status == 403 {
+        // Token expired or invalid - clear auth data and redirect to login
+        clear_auth_data();
+        
+        // Force page reload to trigger auth guard redirect
+        if let Some(window) = web_sys::window() {
+            let _ = window.location().set_href("/");
+        }
+        true // Indicates auth error was handled
+    } else {
+        false // Not an auth error
+    }
+}
+
 /// Logout user by clearing all auth data
 pub fn logout() {
     clear_auth_data();
+    
+    // Redirect to login page
+    if let Some(window) = web_sys::window() {
+        let _ = window.location().set_href("/");
+    }
 }
 
 /// Login with password and get a token

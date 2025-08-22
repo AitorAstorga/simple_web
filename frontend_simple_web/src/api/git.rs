@@ -3,7 +3,7 @@ use gloo::{console::{error, log}, net::http::Request};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen_futures::spawn_local;
 
-use crate::{api::auth::get_token, config_file::get_env_var};
+use crate::{api::auth::{get_token, handle_auth_error}, config_file::get_env_var};
 
 #[derive(Serialize)]
 pub struct GitRepoConfig {
@@ -91,6 +91,14 @@ pub fn api_git_setup(config: GitRepoConfig, callback: Option<impl Fn(Result<GitS
         
         match response {
             Ok(response) => {
+                // Check for authentication errors first
+                if handle_auth_error(response.status()) {
+                    if let Some(cb) = callback {
+                        cb(Err("Authentication failed".to_string()));
+                    }
+                    return;
+                }
+                
                 match response.json::<GitStatus>().await {
                     Ok(status) => {
                         log!(&format!("Git setup result: {}", status.message));
@@ -153,6 +161,14 @@ pub fn api_git_test(config: GitRepoConfig, callback: Option<impl Fn(Result<GitSt
         
         match response {
             Ok(response) => {
+                // Check for authentication errors first
+                if handle_auth_error(response.status()) {
+                    if let Some(cb) = callback {
+                        cb(Err("Authentication failed".to_string()));
+                    }
+                    return;
+                }
+                
                 match response.json::<GitStatus>().await {
                     Ok(status) => {
                         log!(&format!("Git test result: {}", status.message));
@@ -190,6 +206,14 @@ pub fn api_git_pull(callback: Option<impl Fn(Result<GitStatus, String>) + 'stati
         
         match req.send().await {
             Ok(response) => {
+                // Check for authentication errors first
+                if handle_auth_error(response.status()) {
+                    if let Some(cb) = callback {
+                        cb(Err("Authentication failed".to_string()));
+                    }
+                    return;
+                }
+                
                 match response.json::<GitStatus>().await {
                     Ok(status) => {
                         log!(&format!("Git pull result: {}", status.message));
@@ -229,6 +253,14 @@ pub fn api_get_auto_pull_config(callback: Option<impl Fn(Result<AutoPullConfig, 
         
         match req.send().await {
             Ok(response) => {
+                // Check for authentication errors first
+                if handle_auth_error(response.status()) {
+                    if let Some(cb) = callback {
+                        cb(Err("Authentication failed".to_string()));
+                    }
+                    return;
+                }
+                
                 match response.json::<AutoPullConfig>().await {
                     Ok(config) => {
                         log!(&format!("Auto-pull config retrieved: enabled={}, interval={}min", 
@@ -290,6 +322,14 @@ pub fn api_set_auto_pull_config(config: AutoPullConfig, callback: Option<impl Fn
         
         match response {
             Ok(response) => {
+                // Check for authentication errors first
+                if handle_auth_error(response.status()) {
+                    if let Some(cb) = callback {
+                        cb(Err("Authentication failed".to_string()));
+                    }
+                    return;
+                }
+                
                 match response.json::<GitStatus>().await {
                     Ok(status) => {
                         log!(&format!("Auto-pull config result: {}", status.message));
@@ -327,6 +367,14 @@ pub fn api_get_git_status(callback: Option<impl Fn(Result<GitRepoStatus, String>
         
         match req.send().await {
             Ok(response) => {
+                // Check for authentication errors first
+                if handle_auth_error(response.status()) {
+                    if let Some(cb) = callback {
+                        cb(Err("Authentication failed".to_string()));
+                    }
+                    return;
+                }
+                
                 match response.json::<GitRepoStatus>().await {
                     Ok(status) => {
                         log!(&format!("Git status result: has_changes={}, behind={}, ahead={}", 
@@ -389,6 +437,14 @@ pub fn api_commit_changes(message: String, callback: Option<impl Fn(Result<GitSt
         
         match response {
             Ok(response) => {
+                // Check for authentication errors first
+                if handle_auth_error(response.status()) {
+                    if let Some(cb) = callback {
+                        cb(Err("Authentication failed".to_string()));
+                    }
+                    return;
+                }
+                
                 match response.json::<GitStatus>().await {
                     Ok(status) => {
                         log!(&format!("Commit result: {}", status.message));
@@ -426,6 +482,14 @@ pub fn api_push_changes(callback: Option<impl Fn(Result<GitStatus, String>) + 's
         
         match req.send().await {
             Ok(response) => {
+                // Check for authentication errors first
+                if handle_auth_error(response.status()) {
+                    if let Some(cb) = callback {
+                        cb(Err("Authentication failed".to_string()));
+                    }
+                    return;
+                }
+                
                 match response.json::<GitStatus>().await {
                     Ok(status) => {
                         log!(&format!("Push result: {}", status.message));
@@ -463,6 +527,14 @@ pub fn api_force_pull(callback: Option<impl Fn(Result<GitStatus, String>) + 'sta
         
         match req.send().await {
             Ok(response) => {
+                // Check for authentication errors first
+                if handle_auth_error(response.status()) {
+                    if let Some(cb) = callback {
+                        cb(Err("Authentication failed".to_string()));
+                    }
+                    return;
+                }
+                
                 match response.json::<GitStatus>().await {
                     Ok(status) => {
                         log!(&format!("Force pull result: {}", status.message));

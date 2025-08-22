@@ -3,7 +3,7 @@ use yew::prelude::*;
 use yew::virtual_dom::AttrValue;
 use wasm_bindgen::{closure::Closure, JsCast};
 use web_sys::HtmlElement;
-use gloo::console::log;
+use crate::highlighting::highlighter::SyntaxHighlighter;
 
 #[derive(Properties, PartialEq, Clone)]
 pub struct CodeEditorProps {
@@ -35,7 +35,8 @@ pub fn code_editor(props: &CodeEditorProps) -> Html {
                             let highlighted = if val.is_empty() {
                                 String::from("<span></span>")
                             } else {
-                                html_highlight(val.as_str())
+                                let highlighter = SyntaxHighlighter::new();
+                                highlighter.highlight(val.as_str())
                             };
                             editor.set_inner_html(&highlighted);
                         }
@@ -138,106 +139,3 @@ pub fn code_editor(props: &CodeEditorProps) -> Html {
     }
 }
 
-// Simplified syntax highlighting - only called on external updates
-fn html_highlight(src: &str) -> String {
-    // Fast path for small content
-    if src.len() < 100 {
-        return format!("<span>{}</span>", esc(src));
-    }
-    
-    #[derive(PartialEq)]
-    enum State { Code, Str(char), Comment }
-
-    // Minimal keyword sets for performance
-    const KEYWORDS: &[&str] = &[
-        "const", "let", "var", "function", "if", "else", "return", "for", "while",
-        "class", "new", "try", "catch", "import", "export", "async", "await"
-    ];
-
-    let mut out = String::with_capacity(src.len() * 2);
-    let mut tok = String::new();
-    let mut state = State::Code;
-    let mut chars = src.chars().peekable();
-
-    let push_tok = |out: &mut String, tok: &mut String| {
-        if tok.is_empty() { return; }
-        
-        // Simplified classification - only keywords and strings
-        if KEYWORDS.contains(&tok.trim()) {
-            out.push_str(&format!(r#"<span class="keyword">{}</span>"#, esc(tok)));
-        } else {
-            out.push_str(&esc(tok));
-        }
-        tok.clear();
-    };
-
-    while let Some(ch) = chars.next() {
-        match state {
-            State::Code => match ch {
-                '"' | '\'' => {
-                    push_tok(&mut out, &mut tok);
-                    tok.push(ch);
-                    state = State::Str(ch);
-                }
-                '/' if chars.peek() == Some(&'/') => {
-                    push_tok(&mut out, &mut tok);
-                    out.push_str(r#"<span class="comment">//"#);
-                    chars.next();
-                    state = State::Comment;
-                }
-                '#' => {
-                    push_tok(&mut out, &mut tok);
-                    out.push_str(r#"<span class="comment">#"#);
-                    state = State::Comment;
-                }
-                c if c.is_whitespace() || is_punct(c) => {
-                    push_tok(&mut out, &mut tok);
-                    // Escape special HTML characters
-                    match c {
-                        '<' => out.push_str("&lt;"),
-                        '>' => out.push_str("&gt;"),
-                        '&' => out.push_str("&amp;"),
-                        _ => out.push(c),
-                    }
-                }
-                _ => tok.push(ch),
-            },
-            State::Str(quote) => {
-                tok.push(ch);
-                if ch == quote {
-                    out.push_str(&format!(r#"<span class="string">{}</span>"#, esc(&tok)));
-                    tok.clear();
-                    state = State::Code;
-                }
-            }
-            State::Comment => {
-                // Escape HTML characters in comments
-                match ch {
-                    '<' => out.push_str("&lt;"),
-                    '>' => out.push_str("&gt;"),
-                    '&' => out.push_str("&amp;"),
-                    _ => out.push(ch),
-                }
-                
-                if ch == '\n' {
-                    out.push_str("</span>");
-                    state = State::Code;
-                }
-            }
-        }
-    }
-    
-    push_tok(&mut out, &mut tok);
-    out
-}
-
-fn esc(s: &str) -> String {
-    s.replace('&', "&amp;")
-     .replace('<', "&lt;")
-     .replace('>', "&gt;")
-}
-
-fn is_punct(c: char) -> bool {
-    matches!(c, '(' | ')' | '{' | '}' | '[' | ']' | ';' | ',' | '.' | ':' |
-                '+' | '-' | '*' | '=' | '!' | '?' | '|' | '&' | '<' | '>')
-}

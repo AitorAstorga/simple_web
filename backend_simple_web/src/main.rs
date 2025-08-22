@@ -89,7 +89,11 @@ async fn rocket() -> _ {
             api::get_git_status,
             api::commit_changes,
             api::push_repo,
-            api::force_pull_repo
+            api::force_pull_repo,
+            api::list_themes,
+            api::get_theme,
+            api::save_theme,
+            api::delete_theme
         ])
         // Anything under `public_site/` is  always available under /
         .mount("/", FileServer::from("/public_site"))
