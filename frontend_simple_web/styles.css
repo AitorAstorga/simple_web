@@ -495,47 +495,22 @@ textarea {
     text-rendering: optimizeLegibility;
 }
 
-/* ────────── colourised *copy* ────────── */
+/* ────────── legacy highlight layer (no longer used) ────────── */
 .editor-highlight {
-    position: absolute;
-    inset: 0;
-    /* full stretch */
-    padding: var(--editor-pad);
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    tab-size: 4;
-    /* keep tabs in sync */
-    pointer-events: none;
-    /* clicks fall through */
-    user-select: none;
-    /* don't select this layer */
-    overflow: hidden;
-    /* textarea handles scrolling */
-    margin: 0;
-    /* Perfect layout sync */
-    box-sizing: border-box;
-    font: inherit;
-    /* Match textarea font exactly */
-    letter-spacing: inherit;
-    word-spacing: inherit;
-    /* Ensure no font variations */
-    font-variant-ligatures: none;
-    font-feature-settings: normal;
+    display: none; /* This layer is no longer needed with contenteditable */
 }
 
-/* ────────── real <textarea> ────────── */
-.editor-input {
+/* ────────── contenteditable editor ────────── */
+.editor-content {
     position: absolute;
     inset: 0;
     padding: var(--editor-pad);
     border: 1px solid #ccc;
     border-radius: 4px;
-    background: transparent;
-    color: transparent;
-    /* hide glyphs */
+    background: var(--bg-card);
+    color: var(--text-main);
     font: inherit;
     /* inherits family, size, line-height */
-    resize: vertical;
     overflow: auto;
     margin: 0;
     /* remove UA-default margin */
@@ -549,11 +524,24 @@ textarea {
     font-feature-settings: normal;
     letter-spacing: inherit;
     word-spacing: inherit;
+    /* Disable browser spell checking and autocorrect */
+    -webkit-user-modify: read-write-plaintext-only;
+    user-select: text;
+    /* Better text editing behavior */
+    word-break: keep-all;
+    word-wrap: normal;
+    /* Disable browser-specific text manipulation */
+    -webkit-text-size-adjust: none;
+    -moz-text-size-adjust: none;
+    text-size-adjust: none;
 }
 
-.editor-input:focus {
+.editor-content:focus {
     outline: none;
+    border-color: var(--blue);
+    box-shadow: 0 0 0 2px rgba(0, 56, 168, 0.2);
 }
+
 
 /* ────────── Enhanced syntax highlighting ────────── */
 
