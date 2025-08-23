@@ -1,0 +1,48 @@
+name: Build & push to Forgejo Registry
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  # ---- change these to match your setup ----
+  REGISTRY: git.prisma.moe                 # your Forgejo domain
+  NAMESPACE: aichan                        # your Forgejo user/org
+  IMAGE_NAME: simple_web_editor            # repo/image name
+  TAG: latest
+  # -----------------------------------------
+
+jobs:
+  build:
+    # Use a runner label that has Docker available (common label is 'docker')
+    runs-on: docker
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Install the Docker CLI
+      - name: Install Docker CLI (Debian)
+        run: |
+          apt-get update
+          apt-get install -y docker.io ca-certificates
+          docker info
+
+      # Build the Docker image (local tag)
+      - name: Build
+        run: docker build . --file Dockerfile --tag ${IMAGE_NAME}:${TAG}
+
+      # Log in to the Forgejo registry
+      - name: Log in to Forgejo registry
+        run: echo "${{ secrets.FORGEJO_TOKEN }}" \
+          | docker login "${REGISTRY}" -u "${{ secrets.FORGEJO_USER }}" --password-stdin
+
+      # Tag for the Forgejo registry
+      - name: Tag
+        run: docker tag ${IMAGE_NAME}:${TAG} ${REGISTRY}/${NAMESPACE}/${IMAGE_NAME}:${TAG}
+
+      # Push on branch pushes; skip on PRs
+      - name: Push
+        if: github.event_name == 'push'
+        run: docker push ${REGISTRY}/${NAMESPACE}/${IMAGE_NAME}:${TAG}

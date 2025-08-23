@@ -1,0 +1,38 @@
+name: Mirror to GitHub
+
+on:
+  push:
+    branches: [ "master" ]
+    tags:
+      - '*'        # mirror tags, too
+  delete:
+    branches: [ "*" ]
+    tags: [ "*" ]
+
+env:
+  # ---- change this to your GitHub repo HTTPS URL (no token in it) ----
+  GITHUB_MIRROR_URL: https://github.com/aitorastorga/aichan-simple-web-editor.git
+  # -------------------------------------------------------------------
+
+jobs:
+  mirror:
+    runs-on: docker
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history needed for --mirror
+
+      # Authenticate pushes to GitHub without printing the token
+      - name: Configure Git auth header
+        run: |
+          git config --global http.${GITHUB_MIRROR_URL}.extraheader "AUTHORIZATION: bearer ${{ secrets.GITHUB_MIRROR_TOKEN }}"
+          git config --global user.email "ci@local"
+          git config --global user.name "forgejo-ci"
+
+      # Add a mirror remote and push everything (branches + tags, create/prune)
+      - name: Push mirror
+        run: |
+          git remote add mirror "${GITHUB_MIRROR_URL}"
+          # Mirror creates/prunes to keep GitHub identical to Forgejo
+          git push --mirror mirror
