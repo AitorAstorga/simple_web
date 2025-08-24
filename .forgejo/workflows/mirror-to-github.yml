@@ -32,6 +32,19 @@ jobs:
           git config --global user.email "ci@local"
           git config --global user.name "forgejo-ci"
 
+      # Generate GitHub-specific README by inserting README.md at the placeholder line
+      - name: Generate GitHub README
+        run: |
+          # If the placeholder {{MAIN_README_CONTENT}} is on its own line:
+          sed -e '/{{MAIN_README_CONTENT}}/ {' -e 'r README.md' -e 'd' -e '}' README-github.md > README.md.tmp
+          mv README.md.tmp README.md
+
+          # Commit the change if there are differences
+          if ! git diff --quiet README.md; then
+            git add README.md
+            git commit -m "Auto-merge README for GitHub mirror"
+          fi
+
       # Add a mirror remote and push everything (branches + tags, create/prune)
       - name: Push mirror
         run: |
