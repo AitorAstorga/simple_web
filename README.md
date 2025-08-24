@@ -29,6 +29,7 @@
  <ol>
  <li><a href="#about-the-project">About The Project</a></li>
    <ul>
+      <li><a href="#screenshots">Screenshots</a></li>
       <li><a href="#built-with">Built With</a></li>
    </ul>
  </li>
@@ -58,6 +59,50 @@
 Simple Web Editor (SWE) is a lightweight, web-based code editor designed for static site development: a self-hosted alternative to GitHub Pages. It uses a two-part architecture optimized for real-time web editing, built with Rust technologies and containerized for easy deployment.
 
 The editor provides an intuitive interface for managing files and editing code with syntax highlighting. Repositories can be pulled directly from the interface, making version control and collaboration effortless.
+
+### Screenshots
+
+<div align="center">
+<table>
+<tr>
+<td width="50%">
+
+**Login Interface**
+<img src="screenshots/swe_login.png" alt="SWE Login" width="100%"/>
+
+</td>
+<td width="50%">
+
+**Code Editor**
+<img src="screenshots/swe_editor.png" alt="SWE Editor" width="100%"/>
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**Git Configuration**
+<img src="screenshots/swe_settings.png" alt="SWE Settings" width="100%"/>
+
+</td>
+<td width="50%">
+
+**Theme Customization**
+<img src="screenshots/swe_settings2.png" alt="SWE Theme Settings" width="100%"/>
+
+</td>
+</tr>
+</table>
+</div>
+
+**Example:**
+- 🌐 **Static Site Output:** [aichan.moe](https://aichan.moe) - Example of a site built and served through SWE
+
+<div align="center">
+<img src="screenshots/swe_static.png" alt="Example Static Site Output" width="60%"/>
+<br/>
+<em>Example of a personal website built and deployed using Simple Web Editor</em>
+</div>
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
