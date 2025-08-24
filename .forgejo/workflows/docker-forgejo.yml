@@ -13,6 +13,10 @@ env:
   IMAGE_NAME: simple_web_editor            # repo/image name
   TAG: latest
   # -----------------------------------------
+  # Credentials for logging in to your Forgejo container registry.
+  # Set these as repository secrets so they are not exposed in logs.
+  FORGEJO_USER: ${{ secrets.FORGEJO_USER }}   # your Forgejo username (not email)
+  FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }} # PAT with read:package + write:package
 
 jobs:
   build:
@@ -29,20 +33,22 @@ jobs:
           apt-get install -y docker.io ca-certificates
           docker info
 
-      # Build the Docker image (local tag)
+      # Build the Docker image (tag directly with full registry path)
       - name: Build
-        run: docker build . --file Dockerfile --tag ${IMAGE_NAME}:${TAG}
+        run: docker build -t ${REGISTRY}/${NAMESPACE}/${IMAGE_NAME}:${TAG} .
 
       # Log in to the Forgejo registry
-      - name: Log in to Forgejo registry
-        run: echo "${{ secrets.FORGEJO_TOKEN }}" \
-          | docker login "${REGISTRY}" -u "${{ secrets.FORGEJO_USER }}" --password-stdin
+      - name: Login to registry (push only)
+        if: github.event_name == 'push'
+        run: |
+          docker logout "${REGISTRY}" || true
+          # avoid stray newline issues
+          printf '%s' "${FORGEJO_TOKEN}" | docker login "${REGISTRY}" -u "${FORGEJO_USER}" --password-stdin
+          # sanity check: should print 200
+          apt-get update && apt-get install -y curl >/dev/null
+          curl -s -o /dev/null -w 'v2 status=%{http_code}\n' -u "${FORGEJO_USER}:${FORGEJO_TOKEN}" "https://${REGISTRY}/v2/"
 
-      # Tag for the Forgejo registry
-      - name: Tag
-        run: docker tag ${IMAGE_NAME}:${TAG} ${REGISTRY}/${NAMESPACE}/${IMAGE_NAME}:${TAG}
-
-      # Push on branch pushes; skip on PRs
-      - name: Push
+      # Push the image (skip on PRs)
+      - name: Push (push only)
         if: github.event_name == 'push'
         run: docker push ${REGISTRY}/${NAMESPACE}/${IMAGE_NAME}:${TAG}
