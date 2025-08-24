@@ -3,15 +3,14 @@ name: Mirror to GitHub
 on:
   push:
     branches: [ "master" ]
-    tags:
-      - '*'        # mirror tags, too
+    tags: [ "*" ]           # mirror tags, too
   delete:
     branches: [ "*" ]
     tags: [ "*" ]
 
 env:
   # ---- change this to your GitHub repo HTTPS URL (no token in it) ----
-  GITHUB_MIRROR_URL: https://github.com/aitorastorga/aichan-simple-web-editor.git
+  GITHUB_MIRROR_URL: https://github.com/AitorAstorga/simple_web.git
   # -------------------------------------------------------------------
 
 jobs:
@@ -23,16 +22,19 @@ jobs:
         with:
           fetch-depth: 0   # full history needed for --mirror
 
-      # Authenticate pushes to GitHub without printing the token
+      # Configure Git auth header using Basic with a PAT (no token in URL, nothing printed)
       - name: Configure Git auth header
         run: |
-          git config --global http.${GITHUB_MIRROR_URL}.extraheader "AUTHORIZATION: bearer ${{ secrets.GITHUB_MIRROR_TOKEN }}"
+          # Git over HTTPS wants Basic auth. Username "x-access-token" is the convention.
+          TOKEN="${{ secrets._GITHUB_MIRROR_TOKEN }}"
+          B64="$(printf '%s' "x-access-token:${TOKEN}" | base64 | tr -d '\n')"
+          git config --global http.https://github.com/.extraheader "Authorization: Basic ${B64}"
           git config --global user.email "ci@local"
           git config --global user.name "forgejo-ci"
 
       # Add a mirror remote and push everything (branches + tags, create/prune)
       - name: Push mirror
         run: |
-          git remote add mirror "${GITHUB_MIRROR_URL}"
+          git remote add mirror "${GITHUB_MIRROR_URL}" || git remote set-url mirror "${GITHUB_MIRROR_URL}"
           # Mirror creates/prunes to keep GitHub identical to Forgejo
           git push --mirror mirror

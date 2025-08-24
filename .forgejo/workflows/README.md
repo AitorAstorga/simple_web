@@ -17,8 +17,8 @@ To use this workflow in your own project, you need to modify:
    Replace with your GitHub repository's HTTPS URL.
 
 2. **Repository Secret** (Repository Settings > Actions > Secrets):
-   - Create a secret named `GITHUB_MIRROR_TOKEN` 
-   - Value should be a GitHub Personal Access Token with `repo` permissions
+   - Create a secret named `_GITHUB_MIRROR_TOKEN` (yes, the '_' is required)
+   - Value should be a [GitHub Personal Access Token](https://github.com/settings/tokens/new) with `repo` permissions
 
 ### How it works
 
