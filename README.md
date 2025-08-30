@@ -10,7 +10,7 @@
     alt="Visit Counter" /> </p>
 
  <p align="center">
- A two-part web-based code editor built with Rust. Features a Yew WebAssembly frontend and Rocket backend API for real-time file editing and site rendering.
+ A web-based code editor built with Rust. Features a Yew WebAssembly frontend and Rocket backend API for real-time file editing, Git integration and site rendering.
  <br />
  <br />
  <a href="https://yew.rs/docs/getting-started/introduction">Yew Documentation</a>
@@ -107,7 +107,7 @@ The editor provides an intuitive interface for managing files and editing code w
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Built With
-![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white) ![WebAssembly](https://img.shields.io/badge/WebAssembly-654FF0?style=for-the-badge&logo=webassembly&logoColor=white) [![Yew](https://img.shields.io/badge/Yew-2E8B57?style=for-the-badge&logo=rust&logoColor=white)](#) [![Rocket](https://img.shields.io/badge/Rocket-D22128?style=for-the-badge&logo=rocket&logoColor=white)](#) ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white) [![Visual Studio Code](https://custom-icon-badges.demolab.com/badge/Visual%20Studio%20Code-0078d7.svg?style=for-the-badge&logo=vsc&logoColor=white)](#)
+![Rust](static/badges/rust-badge.svg) ![WebAssembly](static/badges/webassembly-badge.svg) [![Yew](static/badges/yew-badge.svg)](#) [![Rocket](static/badges/rocket-badge.svg)](#) ![Docker](static/badges/docker-badge.svg) [![Visual Studio Code](static/badges/vscode-badge.svg)](#)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

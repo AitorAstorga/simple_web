@@ -1,3 +1,4 @@
+// frontend_simple_web/src/api/auth.rs
 use gloo::storage::{LocalStorage, Storage};
 use serde::{Deserialize, Serialize};
 use gloo::net::http::Request;

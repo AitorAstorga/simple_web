@@ -1,3 +1,4 @@
+// frontend_simple_web/src/components/auth_guard.rs
 use yew::prelude::*;
 use yew_router::prelude::*;
 use crate::{api::auth, router::Route};

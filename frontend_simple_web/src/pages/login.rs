@@ -1,3 +1,4 @@
+// frontend_simple_web/src/pages/login.rs
 use yew::prelude::*;
 use web_sys::HtmlInputElement;
 use yew_router::prelude::*;
