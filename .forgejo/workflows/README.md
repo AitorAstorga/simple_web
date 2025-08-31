@@ -16,9 +16,12 @@ To use this workflow in your own project, you need to modify:
    ```
    Replace with your GitHub repository's HTTPS URL.
 
-2. **Repository Secret** (Repository Settings > Actions > Secrets):
+2. **Repository Secret** (Repository / Org / User Settings > Actions > Secrets):
    - Create a secret named `_GITHUB_MIRROR_TOKEN` (yes, the '_' is required)
    - Value should be a [GitHub Personal Access Token](https://github.com/settings/tokens/new) with `repo` permissions
+
+3. **`README-github.md`**
+   - Make sure to copy this, as it is used in the workflow to leave a notice above and below your `README.md` so it is known it is a mirror.
 
 ### How it works
 
@@ -43,7 +46,7 @@ To use this workflow in your own project, you need to modify:
    TAG: latest                                # Docker tag (usually keep as 'latest')
    ```
 
-2. **Repository Secrets** (Repository Settings > Actions > Secrets):
+2. **Repository Secrets** (Repository / Org / User Settings > Actions > Secrets):
    - `FORGEJO_TOKEN`: Personal access token created in **User Settings > Applications > Access tokens** with package write permissions
    - `FORGEJO_USER`: Your Forgejo username (same as your login username)
 
