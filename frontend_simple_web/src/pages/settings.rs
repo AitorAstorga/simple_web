@@ -4,7 +4,7 @@ use web_sys::HtmlInputElement;
 use wasm_bindgen_futures::spawn_local;
 use gloo::timers::callback::Interval;
 
-use crate::api::git::{api_git_setup, api_git_pull, api_git_test, api_get_git_status, api_commit_changes, api_push_changes, api_force_pull, GitRepoConfig, GitStatus, GitRepoStatus};
+use crate::api::git::{api_git_setup, api_git_pull, api_git_test, api_get_git_status, api_commit_changes, api_push_changes, api_force_pull, api_get_auto_pull_config, api_set_auto_pull_config, GitRepoConfig, GitStatus, GitRepoStatus, AutoPullConfig};
 use crate::api::auth;
 use crate::router::Route;
 use crate::components::theme_editor::ThemeEditor;
@@ -30,7 +30,7 @@ pub fn settings() -> Html {
     let _auto_pull_timer = use_state(|| None::<Interval>);
     let _status_poll_timer = use_state(|| None::<Interval>);
 
-    // Load settings from localStorage
+    // Load settings from localStorage and backend
     {
         let repo_url = repo_url.clone();
         let branch = branch.clone();
@@ -40,6 +40,7 @@ pub fn settings() -> Html {
         let pull_interval = pull_interval.clone();
         
         use_effect_with((), move |_| {
+            // Load local storage settings
             if let Some(window) = web_sys::window() {
                 if let Ok(Some(storage)) = window.local_storage() {
                     if let Ok(Some(url)) = storage.get_item("git_repo_url") {
@@ -54,16 +55,38 @@ pub fn settings() -> Html {
                     if let Ok(Some(tok)) = storage.get_item("git_token") {
                         token.set(tok);
                     }
-                    if let Ok(Some(auto)) = storage.get_item("auto_pull_enabled") {
-                        auto_pull_enabled.set(auto == "true");
-                    }
-                    if let Ok(Some(interval)) = storage.get_item("pull_interval") {
-                        if let Ok(minutes) = interval.parse::<u32>() {
-                            pull_interval.set(minutes);
+                }
+            }
+            
+            // Load auto-pull config from backend
+            api_get_auto_pull_config(Some({
+                let auto_pull_enabled = auto_pull_enabled.clone();
+                let pull_interval = pull_interval.clone();
+                move |result: Result<AutoPullConfig, String>| {
+                    match result {
+                        Ok(config) => {
+                            auto_pull_enabled.set(config.enabled);
+                            pull_interval.set(config.interval_minutes);
+                        }
+                        Err(_) => {
+                            // Fallback to localStorage if backend fails
+                            if let Some(window) = web_sys::window() {
+                                if let Ok(Some(storage)) = window.local_storage() {
+                                    if let Ok(Some(auto)) = storage.get_item("auto_pull_enabled") {
+                                        auto_pull_enabled.set(auto == "true");
+                                    }
+                                    if let Ok(Some(interval)) = storage.get_item("pull_interval") {
+                                        if let Ok(minutes) = interval.parse::<u32>() {
+                                            pull_interval.set(minutes);
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
-            }
+            }));
+            
             || ()
         });
     }
@@ -165,44 +188,86 @@ pub fn settings() -> Html {
 
     let on_auto_pull_toggle = {
         let auto_pull_enabled = auto_pull_enabled.clone();
-        let auto_pull_timer = _auto_pull_timer.clone();
         let pull_interval = pull_interval.clone();
+        let status_message = status_message.clone();
         
         Callback::from(move |e: Event| {
             if let Some(input) = e.target_dyn_into::<HtmlInputElement>() {
                 let enabled = input.checked();
-                save_setting("auto_pull_enabled", if enabled { "true" } else { "false" });
-                auto_pull_enabled.set(enabled);
+                let config = AutoPullConfig {
+                    enabled,
+                    interval_minutes: *pull_interval,
+                };
                 
-                // Setup or clear the timer
-                if enabled {
-                    let interval_ms = *pull_interval * 60 * 1000; // convert minutes to milliseconds
-                    let timer = Interval::new(interval_ms, move || {
-                        spawn_local(async {
-                            // For automatic pulls, we silently try to pull and ignore failures
-                            // since the user will see status updates in the settings page when they check
-                            api_git_pull(Some(|_result: Result<GitStatus, String>| {
-                                // Log the result but don't show UI feedback for automatic pulls
-                                // Users can check the last pull status in settings if needed
-                            }));
-                        });
-                    });
-                    auto_pull_timer.set(Some(timer));
-                } else {
-                    auto_pull_timer.set(None);
-                }
+                // Save to localStorage as fallback
+                save_setting("auto_pull_enabled", if enabled { "true" } else { "false" });
+                
+                // Update backend configuration
+                api_set_auto_pull_config(config, Some({
+                    let auto_pull_enabled = auto_pull_enabled.clone();
+                    let status_message = status_message.clone();
+                    move |result: Result<GitStatus, String>| {
+                        match result {
+                            Ok(status) => {
+                                if status.success {
+                                    auto_pull_enabled.set(enabled);
+                                    status_message.set(Some(format!("✅ Auto-pull {} successfully", 
+                                        if enabled { "enabled" } else { "disabled" })));
+                                } else {
+                                    status_message.set(Some(format!("❌ Failed to update auto-pull: {}", status.message)));
+                                }
+                            }
+                            Err(e) => {
+                                status_message.set(Some(format!("❌ Failed to update auto-pull: {}", e)));
+                            }
+                        }
+                    }
+                }));
             }
         })
     };
 
     let on_interval_change = {
         let pull_interval = pull_interval.clone();
+        let auto_pull_enabled = auto_pull_enabled.clone();
+        let status_message = status_message.clone();
+        
         Callback::from(move |e: Event| {
             if let Some(input) = e.target_dyn_into::<HtmlInputElement>() {
                 if let Ok(minutes) = input.value().parse::<u32>() {
                     if minutes > 0 && minutes <= 1440 { // max 24 hours
+                        let config = AutoPullConfig {
+                            enabled: *auto_pull_enabled,
+                            interval_minutes: minutes,
+                        };
+                        
+                        // Save to localStorage as fallback
                         save_setting("pull_interval", &minutes.to_string());
-                        pull_interval.set(minutes);
+                        
+                        // Update backend configuration if auto-pull is enabled
+                        if *auto_pull_enabled {
+                            api_set_auto_pull_config(config, Some({
+                                let pull_interval = pull_interval.clone();
+                                let status_message = status_message.clone();
+                                move |result: Result<GitStatus, String>| {
+                                    match result {
+                                        Ok(status) => {
+                                            if status.success {
+                                                pull_interval.set(minutes);
+                                                status_message.set(Some(format!("✅ Auto-pull interval updated to {} minutes", minutes)));
+                                            } else {
+                                                status_message.set(Some(format!("❌ Failed to update interval: {}", status.message)));
+                                            }
+                                        }
+                                        Err(e) => {
+                                            status_message.set(Some(format!("❌ Failed to update interval: {}", e)));
+                                        }
+                                    }
+                                }
+                            }));
+                        } else {
+                            pull_interval.set(minutes);
+                        }
                     }
                 }
             }
