@@ -5,7 +5,7 @@ use rocket::serde::{json::Json, Deserialize, Serialize};
 use rocket::tokio::fs;
 use std::path::{Path, PathBuf};
 
-use crate::auth::Admin;
+use prisma_auth::backend::AuthGuard as Admin;
 use super::{ROOT, clean};
 
 #[derive(Serialize)]

@@ -4,7 +4,7 @@ use rocket::tokio::fs;
 use std::path::Path;
 use git2::{Repository, Cred, FetchOptions, RemoteCallbacks};
 
-use crate::auth::Admin;
+use prisma_auth::backend::AuthGuard as Admin;
 use crate::scheduler::{get_scheduler, AutoPullConfig};
 use super::ROOT;
 
