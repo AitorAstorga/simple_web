@@ -1,0 +1,16 @@
+services:
+  simple_web:
+    container_name: simple_web_editor
+    build: .
+    ports:
+      - 8000:8000 # API and Renderer
+      - 80:80   # Editor
+    environment:
+      - ROCKET_ADDRESS=0.0.0.0
+      - ROCKET_PORT=8000
+      - ADMIN_PASSWORD=secret123
+      - API_URL=http://localhost:8000/
+      - EDITOR_URL=http://localhost:80/
+    volumes:
+      - ./simple_web_editor/public_site:/public_site
+    restart: unless-stopped

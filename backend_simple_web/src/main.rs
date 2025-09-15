@@ -2,10 +2,9 @@
 #[macro_use] extern crate rocket;
 
 mod api;
-mod auth;
 mod scheduler;
 
-use rocket::{fs::FileServer, http::Method};
+use rocket::{fs::FileServer, http::Method, serde::json::Json, State};
 use rocket_cors::{AllowedHeaders, AllowedOrigins, CorsOptions};
 use std::{fs, path::Path};
 use serde::Serialize;
@@ -28,6 +27,11 @@ fn write_frontend_config(api_url: &str, editor_url: &str) -> std::io::Result<()>
     Ok(())
 }
 
+#[rocket::post("/", format = "json", data = "<body>")]
+fn login(body: Json<prisma_auth::LoginRequest>, store: &State<prisma_auth::backend::TokenStore>) -> Result<Json<prisma_auth::TokenResponse>, rocket::http::Status> {
+    prisma_auth::backend::login_handler(body, store)
+}
+
 #[launch]
 async fn rocket() -> _ {
     let api_url = std::env::var("API_URL").expect("Please set API_URL to something like \"https://api.example.com\"");
@@ -39,7 +43,7 @@ async fn rocket() -> _ {
     scheduler::init_scheduler().await.expect("Failed to initialize git scheduler");
 
     // Initialize token store for authentication
-    let token_store = auth::TokenStore::new();
+    let token_store = prisma_auth::backend::TokenStore::new();
 
     let allowed_origins = AllowedOrigins::some_exact(&[
         // local SPA on port 80
@@ -72,7 +76,7 @@ async fn rocket() -> _ {
         .attach(cors)
         .manage(token_store)
         .mount("/api/auth", routes![
-            auth::login
+            login
         ])
         .mount("/api", routes![
             api::list_files,

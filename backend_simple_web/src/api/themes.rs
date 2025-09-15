@@ -4,7 +4,7 @@ use rocket::{get, post, delete, http::Status};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
-use crate::auth::Admin;
+use prisma_auth::backend::AuthGuard as Admin;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(crate = "rocket::serde")]

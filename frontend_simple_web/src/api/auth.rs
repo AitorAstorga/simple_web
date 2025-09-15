@@ -1,19 +1,7 @@
 // frontend_simple_web/src/api/auth.rs
 use gloo::storage::{LocalStorage, Storage};
-use serde::{Deserialize, Serialize};
 use gloo::net::http::Request;
-
-const TOKEN_KEY: &str = "auth_token";
-
-#[derive(Serialize)]
-pub struct LoginRequest {
-    pub password: String,
-}
-
-#[derive(Deserialize)]
-pub struct TokenResponse {
-    pub token: String,
-}
+use prisma_auth::{LoginRequest, TokenResponse, TOKEN_KEY};
 
 /// Store the raw token in localStorage
 pub fn set_token(token: &str) {

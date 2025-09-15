@@ -5,7 +5,7 @@ use rocket::http::Status;
 use rocket::tokio::fs;
 use std::path::{Component, Path, PathBuf};
 
-use crate::auth::Admin;
+use prisma_auth::backend::AuthGuard as Admin;
 use super::{ROOT, clean};
 
 #[derive(FromForm)]
