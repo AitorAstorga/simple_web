@@ -14,3 +14,22 @@ services:
     volumes:
       - ./simple_web_editor/public_site:/public_site
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/files"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  hurl_tests:
+    image: ghcr.io/orange-opensource/hurl:latest
+    container_name: simple_web_hurl_tests
+    depends_on:
+      simple_web:
+        condition: service_healthy
+    volumes:
+      - ./tests:/tests
+    working_dir: /tests
+    profiles:
+      - test
+    command: ["sh", "-c", "echo 'Hurl tests ready. Run: docker compose --profile test run --rm hurl_tests hurl --test *.hurl'"]
