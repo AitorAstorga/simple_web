@@ -1,7 +1,7 @@
 # Theme Management API Tests
 # First authenticate to get a token
 
-POST http://localhost:8000/api/auth/
+POST http://simple_web:8000/api/auth/
 Content-Type: application/json
 {
   "username": "admin",
@@ -13,7 +13,7 @@ HTTP 200
 auth_token: jsonpath "$.token"
 
 # Test listing themes
-GET http://localhost:8000/api/themes
+GET http://simple_web:8000/api/themes
 Authorization: Bearer {{auth_token}}
 
 HTTP 200
@@ -21,29 +21,34 @@ HTTP 200
 jsonpath "$" isCollection
 
 # Test getting a specific theme (may fail if theme doesn't exist)
-GET http://localhost:8000/api/theme?name=default
+GET http://simple_web:8000/api/themes/default
 Authorization: Bearer {{auth_token}}
 
 # Test saving a theme
-POST http://localhost:8000/api/theme?name=test-theme
+POST http://simple_web:8000/api/themes
 Authorization: Bearer {{auth_token}}
 Content-Type: application/json
 {
-  "content": "/* Test theme CSS */\nbody { background: #f0f0f0; }"
+  "name": "test-theme",
+  "colors": {
+    "background": "#f0f0f0",
+    "foreground": "#333333",
+    "accent": "#007bff"
+  }
 }
 
 HTTP 200
 
 # Test getting the theme we just created
-GET http://localhost:8000/api/theme?name=test-theme
+GET http://simple_web:8000/api/themes/test-theme
 Authorization: Bearer {{auth_token}}
 
 HTTP 200
 [Asserts]
-body contains "Test theme CSS"
+body contains "test-theme"
 
 # Test deleting the test theme
-DELETE http://localhost:8000/api/theme?name=test-theme
+DELETE http://simple_web:8000/api/themes/test-theme
 Authorization: Bearer {{auth_token}}
 
 HTTP 200

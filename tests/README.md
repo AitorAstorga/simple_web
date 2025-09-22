@@ -67,15 +67,6 @@ hurl --test auth.hurl
 hurl --test files.hurl --verbose  # with verbose output
 ```
 
-## Test Structure
-
-Each test file follows this pattern:
-
-1. **Authentication** - Most endpoints require authentication, so tests start by logging in
-2. **Capture Token** - The auth token is captured and used in subsequent requests
-3. **API Tests** - Various API endpoints are tested with different scenarios
-4. **Assertions** - Response status codes, headers, and body content are validated
-
 ## Authentication
 
 The tests use the default admin credentials:

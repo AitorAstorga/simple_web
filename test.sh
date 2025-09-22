@@ -56,7 +56,7 @@ run_hurl_test() {
     local test_name="$2"
 
     echo "Running $test_name tests..."
-    if docker compose --profile test -f docker-compose.dev.yml run --rm hurl_tests hurl --test "$test_file"; then
+    if docker compose --profile test -f docker-compose.dev.yml run --rm hurl_tests --test "$test_file"; then
         echo "✅ $test_name tests passed"
     else
         echo "❌ $test_name tests failed"
@@ -66,12 +66,18 @@ run_hurl_test() {
 
 run_all_tests() {
     echo "Running all API tests..."
-    if docker compose --profile test -f docker-compose.dev.yml run --rm hurl_tests hurl --test *.hurl; then
-        echo "✅ All tests passed"
-    else
-        echo "❌ Some tests failed"
-        return 1
-    fi
+
+    # Run each test file individually
+    for test_file in auth.hurl files.hurl git.hurl themes.hurl; do
+        echo "Running $test_file..."
+        if docker compose --profile test -f docker-compose.dev.yml run --rm hurl_tests --test "$test_file"; then
+            echo "✅ $test_file passed"
+        else
+            echo "❌ $test_file failed"
+            return 1
+        fi
+    done
+    echo "✅ All tests passed"
 }
 
 case "${1:-help}" in

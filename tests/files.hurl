@@ -1,7 +1,7 @@
 # File Management API Tests
 # First authenticate to get a token
 
-POST http://localhost:8000/api/auth/
+POST http://simple_web:8000/api/auth/
 Content-Type: application/json
 {
   "username": "admin",
@@ -13,7 +13,7 @@ HTTP 200
 auth_token: jsonpath "$.token"
 
 # Test listing files (root directory)
-GET http://localhost:8000/api/files
+GET http://simple_web:8000/api/files
 Authorization: Bearer {{auth_token}}
 
 HTTP 200
@@ -23,17 +23,17 @@ jsonpath "$[*].path" exists
 jsonpath "$[*].is_dir" exists
 
 # Test listing files with path parameter
-GET http://localhost:8000/api/files?path=
+GET http://simple_web:8000/api/files?path=
 Authorization: Bearer {{auth_token}}
 
 HTTP 200
 
 # Test getting a file (this might fail if file doesn't exist, but tests the endpoint)
-GET http://localhost:8000/api/file?path=index.html
+GET http://simple_web:8000/api/file?path=index.html
 Authorization: Bearer {{auth_token}}
 
 # Test saving a file
-POST http://localhost:8000/api/file?path=test.txt
+POST http://simple_web:8000/api/file?path=test.txt
 Authorization: Bearer {{auth_token}}
 Content-Type: application/json
 {
@@ -43,7 +43,7 @@ Content-Type: application/json
 HTTP 200
 
 # Test getting the file we just created
-GET http://localhost:8000/api/file?path=test.txt
+GET http://simple_web:8000/api/file?path=test.txt
 Authorization: Bearer {{auth_token}}
 
 HTTP 200
@@ -51,7 +51,7 @@ HTTP 200
 body contains "Hello World from Hurl test!"
 
 # Test deleting the test file
-DELETE http://localhost:8000/api/file?path=test.txt
+DELETE http://simple_web:8000/api/file?path=test.txt
 Authorization: Bearer {{auth_token}}
 
 HTTP 200

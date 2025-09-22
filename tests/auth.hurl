@@ -1,7 +1,7 @@
 # Authentication Tests
 # Test login endpoint
 
-POST http://localhost:8000/api/auth/
+POST http://simple_web:8000/api/auth/
 Content-Type: application/json
 {
   "username": "admin",
@@ -13,7 +13,7 @@ HTTP 200
 token: jsonpath "$.token"
 
 # Test with invalid credentials
-POST http://localhost:8000/api/auth/
+POST http://simple_web:8000/api/auth/
 Content-Type: application/json
 {
   "username": "admin",
