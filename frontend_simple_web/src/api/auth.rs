@@ -56,6 +56,7 @@ pub fn logout() {
 pub async fn login(password: &str) -> Result<String, String> {
     let api_url = crate::config_file::get_env_var("API_URL");
     let login_request = LoginRequest {
+        username: Some("admin".to_string()),
         password: password.to_string(),
     };
 

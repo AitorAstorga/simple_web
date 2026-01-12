@@ -30,4 +30,4 @@ regex = "1.11.1"
 html-escape = "0.2.13"
 lazy_static = "1.5.0"
 once_cell = "1.21.3"
-prisma_auth = { version = "0.2.1", features = ["yew_frontend"] }
+prisma_auth = { git = "https://git.prisma.moe/aichan/prisma_auth", features = ["yew_frontend"] }
