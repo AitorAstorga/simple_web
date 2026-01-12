@@ -14,3 +14,21 @@ services:
     volumes:
       - ./simple_web_editor/public_site:/public_site
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "sh", "-c", "curl -s http://localhost:8000/api/auth/ | grep -q 'Rocket' || curl -s http://localhost:8000/api/auth/ | grep -q '422'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  hurl_tests:
+    image: ghcr.io/orange-opensource/hurl:4.3.0
+    container_name: simple_web_hurl_tests
+    depends_on:
+      - simple_web
+    volumes:
+      - ./tests:/tests
+    working_dir: /tests
+    profiles:
+      - test
+    entrypoint: ["hurl"]
