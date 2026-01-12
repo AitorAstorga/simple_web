@@ -54,12 +54,12 @@ pub fn logout() {
 
 /// Login with password and get a token
 pub async fn login(password: &str) -> Result<String, String> {
-    let api_url = crate::config_file::get_env_var("API_URL");
     let login_request = LoginRequest {
+        username: Some("admin".to_string()),
         password: password.to_string(),
     };
 
-    let response = Request::post(&format!("{}/api/auth/", api_url))
+    let response = Request::post("/api/auth/")
         .header("Content-Type", "application/json")
         .json(&login_request)
         .map_err(|e| format!("Failed to create request: {}", e))?

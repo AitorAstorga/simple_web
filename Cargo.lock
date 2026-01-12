@@ -1781,9 +1781,8 @@ dependencies = [
 
 [[package]]
 name = "prisma_auth"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "778c92aed3533ad4173131b22ca2b3dff66e9498a75beb411a6707d377a4ddf7"
+version = "0.3.0"
+source = "git+https://git.prisma.moe/aichan/prisma_auth#b9316f68800bd8e1b5ae2bf0eeac7fabb1e0b827"
 dependencies = [
  "argon2",
  "base64ct",

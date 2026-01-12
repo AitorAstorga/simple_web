@@ -3,7 +3,7 @@ use gloo::{console::{error, log}, net::http::Request};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen_futures::spawn_local;
 
-use crate::{api::auth::{get_token, handle_auth_error}, config_file::get_env_var};
+use crate::api::auth::{get_token, handle_auth_error};
 
 #[derive(Serialize)]
 pub struct GitRepoConfig {
@@ -57,11 +57,10 @@ pub struct CommitRequest {
 fn reload() { let _ = web_sys::window().map(|w| w.location().reload()); }
 
 pub fn api_git_setup(config: GitRepoConfig, callback: Option<impl Fn(Result<GitStatus, String>) + 'static>) {
-    let api_url = get_env_var("API_URL");
     let auth = get_token();
-    
+
     spawn_local(async move {
-        let url = format!("{api_url}/api/git/setup");
+        let url = "/api/git/setup";
         let body = match serde_json::to_string(&config) {
             Ok(b) => b,
             Err(e) => {
@@ -127,11 +126,10 @@ pub fn api_git_setup(config: GitRepoConfig, callback: Option<impl Fn(Result<GitS
 }
 
 pub fn api_git_test(config: GitRepoConfig, callback: Option<impl Fn(Result<GitStatus, String>) + 'static>) {
-    let api_url = get_env_var("API_URL");
     let auth = get_token();
-    
+
     spawn_local(async move {
-        let url = format!("{api_url}/api/git/test");
+        let url = "/api/git/test";
         let body = match serde_json::to_string(&config) {
             Ok(b) => b,
             Err(e) => {
@@ -195,11 +193,10 @@ pub fn api_git_test(config: GitRepoConfig, callback: Option<impl Fn(Result<GitSt
 }
 
 pub fn api_git_pull(callback: Option<impl Fn(Result<GitStatus, String>) + 'static>) {
-    let api_url = get_env_var("API_URL");
     let auth = get_token();
-    
+
     spawn_local(async move {
-        let url = format!("{api_url}/api/git/pull");
+        let url = "/api/git/pull";
         
         let req = Request::post(&url)
             .header("Authorization", &auth);
@@ -242,11 +239,10 @@ pub fn api_git_pull(callback: Option<impl Fn(Result<GitStatus, String>) + 'stati
 }
 
 pub fn api_get_git_status(callback: Option<impl Fn(Result<GitRepoStatus, String>) + 'static>) {
-    let api_url = get_env_var("API_URL");
     let auth = get_token();
-    
+
     spawn_local(async move {
-        let url = format!("{api_url}/api/git/status");
+        let url = "/api/git/status";
         
         let req = Request::get(&url)
             .header("Authorization", &auth);
@@ -288,11 +284,10 @@ pub fn api_get_git_status(callback: Option<impl Fn(Result<GitRepoStatus, String>
 }
 
 pub fn api_commit_changes(message: String, callback: Option<impl Fn(Result<GitStatus, String>) + 'static>) {
-    let api_url = get_env_var("API_URL");
     let auth = get_token();
-    
+
     spawn_local(async move {
-        let url = format!("{api_url}/api/git/commit");
+        let url = "/api/git/commit";
         let request = CommitRequest { message };
         let body = match serde_json::to_string(&request) {
             Ok(b) => b,
@@ -357,11 +352,10 @@ pub fn api_commit_changes(message: String, callback: Option<impl Fn(Result<GitSt
 }
 
 pub fn api_push_changes(callback: Option<impl Fn(Result<GitStatus, String>) + 'static>) {
-    let api_url = get_env_var("API_URL");
     let auth = get_token();
-    
+
     spawn_local(async move {
-        let url = format!("{api_url}/api/git/push");
+        let url = "/api/git/push";
         
         let req = Request::post(&url)
             .header("Authorization", &auth);
@@ -402,11 +396,10 @@ pub fn api_push_changes(callback: Option<impl Fn(Result<GitStatus, String>) + 's
 }
 
 pub fn api_force_pull(callback: Option<impl Fn(Result<GitStatus, String>) + 'static>) {
-    let api_url = get_env_var("API_URL");
     let auth = get_token();
-    
+
     spawn_local(async move {
-        let url = format!("{api_url}/api/git/force-pull");
+        let url = "/api/git/force-pull";
         
         let req = Request::post(&url)
             .header("Authorization", &auth);
@@ -449,11 +442,10 @@ pub fn api_force_pull(callback: Option<impl Fn(Result<GitStatus, String>) + 'sta
 }
 
 pub fn api_get_auto_pull_config(callback: Option<impl Fn(Result<AutoPullConfig, String>) + 'static>) {
-    let api_url = get_env_var("API_URL");
     let auth = get_token();
-    
+
     spawn_local(async move {
-        let url = format!("{api_url}/api/git/auto-pull");
+        let url = "/api/git/auto-pull";
         
         let req = Request::get(&url)
             .header("Authorization", &auth);
@@ -494,11 +486,10 @@ pub fn api_get_auto_pull_config(callback: Option<impl Fn(Result<AutoPullConfig, 
 }
 
 pub fn api_set_auto_pull_config(config: AutoPullConfig, callback: Option<impl Fn(Result<GitStatus, String>) + 'static>) {
-    let api_url = get_env_var("API_URL");
     let auth = get_token();
-    
+
     spawn_local(async move {
-        let url = format!("{api_url}/api/git/auto-pull");
+        let url = "/api/git/auto-pull";
         let body = match serde_json::to_string(&config) {
             Ok(b) => b,
             Err(e) => {

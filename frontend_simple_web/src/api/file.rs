@@ -5,7 +5,7 @@ use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{js_sys::Reflect, FileList};
 
-use crate::{api::auth::{get_token, handle_auth_error}, config_file::get_env_var};
+use crate::api::auth::{get_token, handle_auth_error};
 
 // Helper method to reload the page
 fn reload() { let _ = web_sys::window().map(|w| w.location().reload()); }
@@ -13,11 +13,10 @@ fn reload() { let _ = web_sys::window().map(|w| w.location().reload()); }
 pub fn post_api_file(path: impl Into<String>, content: impl Into<String>) {
     let path    = path.into();
     let content = content.into();
-    let api_url = get_env_var("API_URL");
     let auth    = get_token();
 
     spawn_local(async move {
-        let url  = format!("{api_url}/api/file?path={}", encode(&path));
+        let url  = format!("/api/file?path={}", encode(&path));
         let body = serde_json::json!({ "content": content }).to_string();
 
         let req = match Request::post(&url)
@@ -43,8 +42,7 @@ pub fn post_api_file(path: impl Into<String>, content: impl Into<String>) {
 }
 
 pub async fn get_api_file(path: &str) -> Result<Response, Error> {
-    let api_url = get_env_var("API_URL");
-    let url = format!("{api_url}/api/file?path={}", encode(path));
+    let url = format!("/api/file?path={}", encode(path));
     let auth = get_token();
     
     let response = Request::get(&url)
@@ -61,8 +59,7 @@ pub async fn get_api_file(path: &str) -> Result<Response, Error> {
 }
 
 pub async fn get_api_files(path: &str) -> Result<Response, Error> {
-    let api_url = get_env_var("API_URL");
-    let url = format!("{api_url}/api/files?path={}", encode(path));
+    let url = format!("/api/files?path={}", encode(path));
     let auth = get_token();
     
     let response = Request::get(&url)
@@ -81,14 +78,13 @@ pub async fn get_api_files(path: &str) -> Result<Response, Error> {
 pub fn api_move(from: impl Into<String>, to: impl Into<String>) {
     let from = from.into();
     let to   = to.into();
-    let api_url = get_env_var("API_URL");
     let auth    = get_token();
 
     log!(format!("moving {from} to {to}"));
 
     spawn_local(async move {
         let body = serde_json::json!({ "from": &from, "to": &to }).to_string();
-        match Request::post(&format!("{api_url}/api/move"))
+        match Request::post("/api/move")
             .header("Authorization", &auth)
             .header("Content-Type", "application/json")
             .body(body)
@@ -107,11 +103,10 @@ pub fn api_move(from: impl Into<String>, to: impl Into<String>) {
 
 pub fn api_delete(path: impl Into<String>) {
     let path = path.into();
-    let api_url = get_env_var("API_URL");
     let auth    = get_token();
 
     spawn_local(async move {
-        let url = format!("{api_url}/api/file?path={}", encode(&path));
+        let url = format!("/api/file?path={}", encode(&path));
         match Request::delete(&url)
             .header("Authorization", &auth)
             .send()
@@ -129,7 +124,6 @@ pub fn api_delete(path: impl Into<String>) {
 }
 
 pub fn api_upload(files: FileList, base_path: Option<String>) {
-    let api_url = get_env_var("API_URL").trim_end_matches('/').to_string();
     let auth    = get_token();
 
     if files.length() == 0 {
@@ -165,7 +159,7 @@ pub fn api_upload(files: FileList, base_path: Option<String>) {
     }
 
     spawn_local(async move {
-        let url = format!("{api_url}/api/upload");
+        let url = "/api/upload".to_string();
         let req = match Request::post(&url)
             .header("Authorization", &auth)
             .body(form_data)

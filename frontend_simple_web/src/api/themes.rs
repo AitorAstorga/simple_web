@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use wasm_bindgen_futures::spawn_local;
 use crate::api::auth::{get_token, handle_auth_error};
-use crate::config_file::get_env_var;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CustomTheme {
@@ -30,11 +29,10 @@ pub fn api_list_themes<F>(callback: Option<F>)
 where
     F: Fn(Result<Vec<String>, String>) + 'static,
 {
-    let api_url = get_env_var("API_URL");
     let auth = get_token();
-    
+
     spawn_local(async move {
-        let url = format!("{api_url}/api/themes");
+        let url = "/api/themes";
         
         let req = Request::get(&url)
             .header("Authorization", &auth);
@@ -77,11 +75,10 @@ pub fn api_save_theme<F>(theme: CustomTheme, callback: Option<F>)
 where
     F: Fn(Result<String, String>) + 'static,
 {
-    let api_url = get_env_var("API_URL");
     let auth = get_token();
-    
+
     spawn_local(async move {
-        let url = format!("{api_url}/api/themes");
+        let url = "/api/themes";
         
         let req = Request::post(&url)
             .header("Authorization", &auth)
@@ -138,11 +135,10 @@ pub fn api_delete_theme<F>(theme_name: String, callback: Option<F>)
 where
     F: Fn(Result<String, String>) + 'static,
 {
-    let api_url = get_env_var("API_URL");
     let auth = get_token();
-    
+
     spawn_local(async move {
-        let url = format!("{api_url}/api/themes/{theme_name}");
+        let url = format!("/api/themes/{theme_name}");
         
         let req = Request::delete(&url)
             .header("Authorization", &auth);
