@@ -73,7 +73,7 @@ impl GitScheduler {
     }
 
     pub async fn update_config(&self, new_config: AutoPullConfig) -> Result<(), Box<dyn std::error::Error>> {
-        info!("🔄 Updating auto-pull configuration: enabled={}, interval={}min", 
+        info!("Updating auto-pull configuration: enabled={}, interval={}min", 
               new_config.enabled, new_config.interval_minutes);
 
         // Remove existing job if any
@@ -100,7 +100,7 @@ impl GitScheduler {
         let mut job_id_guard = self.current_job_id.write().await;
         if let Some(job_id) = *job_id_guard {
             self.scheduler.remove(&job_id).await?;
-            info!("🗑️ Removed existing auto-pull job");
+            info!("Removed existing auto-pull job");
         }
         *job_id_guard = None;
         Ok(())
@@ -116,17 +116,17 @@ impl GitScheduler {
         
         let job = Job::new_async(cron_expr.as_str(), |_uuid, _l| {
             Box::pin(async move {
-                info!("🔄 Running scheduled git pull...");
+                info!("Running scheduled git pull...");
                 match pull_repo_internal().await {
                     Ok(status) => {
                         if status.success {
-                            info!("✅ Scheduled git pull successful: {}", status.message);
+                            info!("Scheduled git pull successful: {}", status.message);
                         } else {
-                            warn!("⚠️ Scheduled git pull failed: {}", status.message);
+                            warn!("Scheduled git pull failed: {}", status.message);
                         }
                     }
                     Err(e) => {
-                        error!("❌ Scheduled git pull error: {}", e);
+                        error!("Scheduled git pull error: {}", e);
                     }
                 }
             })
@@ -139,7 +139,7 @@ impl GitScheduler {
             *job_id_guard = Some(job_id);
         }
 
-        info!("⏰ Auto-pull job scheduled every {} minutes", interval);
+        info!("Auto-pull job scheduled every {} minutes", interval);
         Ok(())
     }
 
@@ -154,7 +154,7 @@ static GIT_SCHEDULER: tokio::sync::OnceCell<GitScheduler> = tokio::sync::OnceCel
 pub async fn init_scheduler() -> Result<(), Box<dyn std::error::Error>> {
     let scheduler = GitScheduler::new().await?;
     GIT_SCHEDULER.set(scheduler).map_err(|_| "Failed to initialize scheduler")?;
-    info!("🚀 Git scheduler initialized");
+    info!("Git scheduler initialized");
     Ok(())
 }
 

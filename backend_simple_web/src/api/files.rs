@@ -6,6 +6,8 @@ use rocket::tokio::fs;
 use std::path::{Path, PathBuf};
 
 use prisma_auth::backend::AuthGuard as Admin;
+use super::error::AppError;
+use super::path::ValidatedPath;
 use super::{ROOT, clean};
 
 #[derive(Serialize)]
@@ -26,8 +28,8 @@ pub struct FileBody {
 /// ### Arguments:
 /// - `path` (optional): relative path inside the public site
 /// ### Examples:
-/// - GET /api/files               → list ROOT
-/// - GET /api/files?path=img/logo → list ./img/logo
+/// - GET /api/files               -> list ROOT
+/// - GET /api/files?path=img/logo -> list ./img/logo
 #[get("/files?<path>")]
 pub async fn list_files(path: Option<String>, _admin: Admin) -> Json<Vec<FileEntry>> {
     let dir_path = match path.map(|p| clean(&p)) {
@@ -71,59 +73,56 @@ pub async fn get_file(path: Option<String>, _admin: Admin) -> Option<NamedFile> 
 // ------------- SAVE FILE ----------------------------------------------------
 /// Save a file
 /// ### Arguments:
-/// - `path` (optional): relative path inside the public site
+/// - `path` (required): relative path inside the public site
 /// - `content` (required): the file content
 /// ### Examples:
 /// - POST /api/file  JSON ```{"path":"css/app.css","content":"body{}"}```
 #[post("/file?<path>", data = "<body>")]
-pub async fn save_file(_admin: Admin, path: &str, body: Json<FileBody>) -> Result<Status, Status> {
-    let rel = clean(path);
-    if rel.is_empty() {
-        return Err(Status::BadRequest);
-    }
+pub async fn save_file(_admin: Admin, path: &str, body: Json<FileBody>) -> Result<Status, AppError> {
+    let vp = ValidatedPath::new_destination(path)?;
+    let full = vp.as_path();
 
-    let full = Path::new(ROOT).join(&rel);
-    if fs::metadata(&full)
+    if fs::metadata(full)
         .await
         .map(|m| m.is_dir())
         .unwrap_or(false)
     {
-        return Err(Status::BadRequest); // target is a directory
+        return Err(AppError::BadRequest("Target is a directory".into()));
     }
 
     if let Some(parent) = full.parent() {
-        fs::create_dir_all(parent)
-            .await
-            .map_err(|_| Status::InternalServerError)?;
+        fs::create_dir_all(parent).await?;
     }
-    fs::write(&full, &body.content)
-        .await
-        .map_err(|_| Status::InternalServerError)?;
+    fs::write(full, &body.content).await?;
     Ok(Status::Ok)
 }
 
 // ------------- DELETE FILE / DIR -------------------------------------------
 /// Delete a file or directory
 /// ### Arguments:
-/// - `path` (optional): relative path inside the public site
+/// - `path` (required): relative path inside the public site
 /// ### Examples:
 /// - DELETE /api/file?path=img/logo.png
 #[delete("/file?<path>")]
-pub async fn delete_file(path: Option<String>, _admin: Admin) -> Result<Status, Status> {
-    let Some(rel) = path.map(|p| clean(&p)).filter(|p| !p.is_empty()) else {
-        return Err(Status::BadRequest);
-    };
-    let full = Path::new(ROOT).join(&rel);
+pub async fn delete_file(path: Option<String>, _admin: Admin) -> Result<Status, AppError> {
+    let rel = path.map(|p| clean(&p)).filter(|p| !p.is_empty())
+        .ok_or_else(|| AppError::BadRequest("Path is required".into()))?;
+    let vp = ValidatedPath::new(&rel)?;
+    let full = vp.as_path();
 
-    if fs::metadata(&full)
+    if fs::metadata(full)
         .await
         .ok()
         .map(|m| m.is_file())
         .unwrap_or(false)
     {
-        fs::remove_file(full).await.ok();
+        fs::remove_file(full).await.map_err(|e| {
+            AppError::Internal(format!("Failed to delete file {:?}: {}", full, e))
+        })?;
     } else {
-        fs::remove_dir_all(full).await.ok();
+        fs::remove_dir_all(full).await.map_err(|e| {
+            AppError::Internal(format!("Failed to delete directory {:?}: {}", full, e))
+        })?;
     }
     Ok(Status::Ok)
 }

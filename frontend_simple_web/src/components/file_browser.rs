@@ -127,7 +127,7 @@ pub fn file_browser(props: &Props) -> Html {
     fn icon_for(entry: &FileEntry) -> Html {
         if entry.is_dir {
             return html! {
-                { "📁 " }
+                <img class="icon" src="/assets/icons/folder.svg" alt="" width="16" height="16" />
             };
         }
 
@@ -142,33 +142,8 @@ pub fn file_browser(props: &Props) -> Html {
             &"json" => "json.svg",
             &"md"   => "markdown.svg",
             &"png" | &"jpg" | &"jpeg" | &"gif" | &"svg" => "image.svg",
-            _      => "",
+            _      => "file.svg",
         };
-
-        if svg.is_empty() {
-            // Enhanced file type emoji icons for better recognition
-            let emoji = match ext {
-                &"toml" => "⚙️ ",
-                &"yaml" | &"yml" => "📋 ",
-                &"dockerfile" | &"Dockerfile" => "🐳 ",
-                &"env" => "🔧 ",
-                &"txt" | &"log" => "📄 ",
-                &"xml" => "📰 ",
-                &"pdf" => "📄 ",
-                &"zip" | &"tar" | &"gz" => "📦 ",
-                &"sh" | &"bash" => "🔧 ",
-                &"py" => "🐍 ",
-                &"go" => "🔷 ",
-                &"java" => "☕ ",
-                &"php" => "🐘 ",
-                &"rb" => "💎 ",
-                &"cpp" | &"c" | &"h" => "⚡ ",
-                _ => "📄 ",
-            };
-            return html! {
-                { emoji }
-            };
-        }
 
         html! {
             <img class="icon"
@@ -353,7 +328,7 @@ pub fn file_browser(props: &Props) -> Html {
                 { if selected_count > 0 {
                     html! {
                         <button class="btn btn-danger text-sm" onclick={bulk_delete}>
-                            {"🗑️ Delete Selected"}
+                            {"Delete Selected"}
                         </button>
                     }
                 } else {
@@ -368,7 +343,7 @@ pub fn file_browser(props: &Props) -> Html {
                             onclick={up}
                         ondragover={drag_over.clone()}
                             ondrop={drop_on_dotdot.clone()}>
-                            { "📁 .." }
+                            { ".. (up)" }
                         </li>
                     }
             } else { html!{} } }
@@ -380,7 +355,6 @@ pub fn file_browser(props: &Props) -> Html {
                 let full_path = joined(&cwd, &basename);
                 
                 /* --------- selection checkbox --------- */
-                let _selected_files_clone = selected_files.clone();
                 let is_selected = selected_files.contains(&full_path);
                 let on_select = {
                     let selected_files = selected_files.clone();
@@ -417,7 +391,7 @@ pub fn file_browser(props: &Props) -> Html {
                         }
                     })
                 };
-                let del_btn = html! { <button class="text-red-600" onclick={del_cb}>{"🗑"}</button> };
+                let del_btn = html! { <button class="text-red-600" onclick={del_cb}>{"x"}</button> };
 
                 /* --------- entry-specific UI --------- */
                 // click handler

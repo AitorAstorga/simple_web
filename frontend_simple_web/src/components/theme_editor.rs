@@ -156,7 +156,7 @@ pub fn theme_editor(props: &ThemeEditorProps) -> Html {
     let editing_mode = use_state(|| false);
     let custom_themes = use_state(|| CustomTheme::list_custom_themes());
     let api_themes = use_state(|| Vec::<String>::new());
-    let sync_status = use_state(|| None::<String>);
+    let sync_status = use_state(|| None::<(bool, String)>);
     
     let available_builtin_themes = get_available_themes();
     
@@ -171,7 +171,7 @@ pub fn theme_editor(props: &ThemeEditorProps) -> Html {
                 let sync_status = sync_status.clone();
                 move |themes| {
                     api_themes.set(themes);
-                    sync_status.set(Some("✅ Connected to server".to_string()));
+                    sync_status.set(Some((true, "Connected to server".to_string())));
                 }
             });
             || {}
@@ -343,11 +343,11 @@ struct Config {
                                 api_list.push(name_clone.clone());
                             }
                             api_themes_clone.set(api_list);
-                            sync_status_clone.set(Some("✅ Saved to server".to_string()));
+                            sync_status_clone.set(Some((true, "Saved to server".to_string())));
                             log!("Theme saved to server successfully");
                         },
                         Err(e) => {
-                            sync_status_clone.set(Some(format!("⚠️ Server save failed: {}", e)));
+                            sync_status_clone.set(Some((false, format!("Server save failed: {}", e))));
                             log!("Failed to save theme to server:", &e);
                         }
                     }
@@ -387,11 +387,11 @@ struct Config {
                             let mut api_list = (*api_themes_clone).clone();
                             api_list.retain(|t| t != &name_clone);
                             api_themes_clone.set(api_list);
-                            sync_status_clone.set(Some("✅ Deleted from server".to_string()));
+                            sync_status_clone.set(Some((true, "Deleted from server".to_string())));
                             log!("Theme deleted from server successfully");
                         },
                         Err(e) => {
-                            sync_status_clone.set(Some(format!("⚠️ Server delete failed: {}", e)));
+                            sync_status_clone.set(Some((false, format!("Server delete failed: {}", e))));
                             log!("Failed to delete theme from server:", &e);
                         }
                     }
@@ -455,11 +455,11 @@ struct Config {
                                         let is_local = custom_themes.contains(theme_name);
                                         let is_server = api_themes.contains(theme_name);
                                         let status_icon = if is_local && is_server {
-                                            "✅ " // synced
+                                            ""
                                         } else if is_local {
-                                            "💾 " // local only
+                                            "[local] "
                                         } else {
-                                            "☁️ " // server only
+                                            "[server] "
                                         };
                                         
                                         html! {
@@ -557,16 +557,16 @@ struct Config {
             </div>
             
             // Sync Status
-            { if let Some(ref status) = *sync_status {
+            { if let Some((success, ref msg)) = *sync_status {
                 html! {
                     <div class="p-3 rounded border" style={
-                        if status.starts_with("✅") {
+                        if success {
                             "background-color: #dcfce7; color: #166534; border-color: #bbf7d0;"
                         } else {
-                            "background-color: #fefce8; color: #ca8a04; border-color: #fde68a;"
+                            "background-color: #fef2f2; color: #dc2626; border-color: #fecaca;"
                         }
                     }>
-                        <div class="text-sm font-medium">{status}</div>
+                        <div class="text-sm font-medium">{msg}</div>
                     </div>
                 }
             } else {

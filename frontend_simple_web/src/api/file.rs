@@ -1,4 +1,4 @@
-// frontend_simple_web/src/file.rs
+// frontend_simple_web/src/api/file.rs
 use gloo::{console::{debug, error, log}, net::{http::{Request, Response}, Error}};
 use urlencoding::encode;
 use wasm_bindgen::{JsCast, JsValue};
@@ -7,7 +7,6 @@ use web_sys::{js_sys::Reflect, FileList};
 
 use crate::api::auth::{get_token, handle_auth_error};
 
-// Helper method to reload the page
 fn reload() { let _ = web_sys::window().map(|w| w.location().reload()); }
 
 pub fn post_api_file(path: impl Into<String>, content: impl Into<String>) {
@@ -44,41 +43,39 @@ pub fn post_api_file(path: impl Into<String>, content: impl Into<String>) {
 pub async fn get_api_file(path: &str) -> Result<Response, Error> {
     let url = format!("/api/file?path={}", encode(path));
     let auth = get_token();
-    
+
     let response = Request::get(&url)
         .header("Authorization", &auth)
         .send()
         .await?;
-    
-    // Check for authentication errors
+
     if handle_auth_error(response.status()) {
-        return Err(Error::GlooError(format!("Authentication failed").into()));
+        return Err(Error::GlooError("Authentication failed".into()));
     }
-    
+
     Ok(response)
 }
 
 pub async fn get_api_files(path: &str) -> Result<Response, Error> {
     let url = format!("/api/files?path={}", encode(path));
     let auth = get_token();
-    
+
     let response = Request::get(&url)
         .header("Authorization", &auth)
         .send()
         .await?;
-    
-    // Check for authentication errors
+
     if handle_auth_error(response.status()) {
-        return Err(Error::GlooError(format!("Authentication failed").into()));
+        return Err(Error::GlooError("Authentication failed".into()));
     }
-    
+
     Ok(response)
 }
 
 pub fn api_move(from: impl Into<String>, to: impl Into<String>) {
     let from = from.into();
     let to   = to.into();
-    let auth    = get_token();
+    let auth = get_token();
 
     log!(format!("moving {from} to {to}"));
 
@@ -103,7 +100,7 @@ pub fn api_move(from: impl Into<String>, to: impl Into<String>) {
 
 pub fn api_delete(path: impl Into<String>) {
     let path = path.into();
-    let auth    = get_token();
+    let auth = get_token();
 
     spawn_local(async move {
         let url = format!("/api/file?path={}", encode(&path));
@@ -124,7 +121,7 @@ pub fn api_delete(path: impl Into<String>) {
 }
 
 pub fn api_upload(files: FileList, base_path: Option<String>) {
-    let auth    = get_token();
+    let auth = get_token();
 
     if files.length() == 0 {
         error!("No files selected");
@@ -146,11 +143,9 @@ pub fn api_upload(files: FileList, base_path: Option<String>) {
         let rel_path = Reflect::get(&file, &JsValue::from_str("webkitRelativePath"))
             .ok()
             .and_then(|v| v.as_string())
-            // fallback to just the filename if that property wasn't set
             .filter(|s| !s.is_empty())
             .unwrap_or_else(|| file.name());
 
-        // Append the blob with the full path as its filename
         form_data
             .append_with_blob_and_filename("files", &file, &rel_path)
             .unwrap();
@@ -174,7 +169,6 @@ pub fn api_upload(files: FileList, base_path: Option<String>) {
                 } else if !response.ok() {
                     error!("Upload failed with status: {}", response.status());
                 }
-                // Note: Commented out reload for uploads as it might interrupt user flow
             }
             Err(_) => {
                 error!("Failed to upload files");

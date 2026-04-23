@@ -76,7 +76,7 @@ fn get_ochite_miro_theme() -> ColorTheme {
     colors.insert("attr".to_string(), "#E6CFDE".to_string());
     colors.insert("selector".to_string(), "#A6C7DA".to_string());
     colors.insert("color".to_string(), "#513D8D".to_string());
-    colors.insert("url".to_string(), "#937EBBc".to_string());
+    colors.insert("url".to_string(), "#937EBB".to_string());
     colors.insert("pseudo".to_string(), "#0D0717".to_string());
     colors.insert("atrule".to_string(), "#2B6DC2".to_string());
     colors.insert("constant".to_string(), "#C24791".to_string());

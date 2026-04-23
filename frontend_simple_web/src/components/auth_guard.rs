@@ -10,7 +10,6 @@ pub struct AuthGuardProps {
 
 #[function_component(AuthGuard)]
 pub fn auth_guard(props: &AuthGuardProps) -> Html {
-    let _navigator = use_navigator().unwrap();
     let is_authenticated = use_state(|| false);
     
     // Check authentication status on component mount
@@ -34,7 +33,7 @@ pub fn auth_guard(props: &AuthGuardProps) -> Html {
         html! {
             <div class="auth-notice">
                 <div class="auth-notice-card">
-                    <h2>{"🔒 Authentication Required"}</h2>
+                    <h2>{"Authentication Required"}</h2>
                     <p>{"You need to be logged in to access this page."}</p>
                     <Link<Route> to={Route::Login} classes="btn btn-primary">
                         {"Go to Login"}

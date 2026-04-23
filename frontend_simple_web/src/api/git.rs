@@ -1,11 +1,9 @@
 // frontend_simple_web/src/api/git.rs
-use gloo::{console::{error, log}, net::http::Request};
 use serde::{Deserialize, Serialize};
-use wasm_bindgen_futures::spawn_local;
 
-use crate::api::auth::{get_token, handle_auth_error};
+use super::client::{self, Method};
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub struct GitRepoConfig {
     pub url: String,
     pub branch: Option<String>,
@@ -49,505 +47,58 @@ pub struct AutoPullConfig {
 }
 
 #[derive(Serialize)]
-pub struct CommitRequest {
+struct CommitRequest {
     message: String,
 }
 
-// Helper method to reload the page
-fn reload() { let _ = web_sys::window().map(|w| w.location().reload()); }
+fn serialize_body(value: &impl Serialize) -> Result<String, String> {
+    serde_json::to_string(value).map_err(|e| format!("Failed to serialize: {}", e))
+}
 
 pub fn api_git_setup(config: GitRepoConfig, callback: Option<impl Fn(Result<GitStatus, String>) + 'static>) {
-    let auth = get_token();
-
-    spawn_local(async move {
-        let url = "/api/git/setup";
-        let body = match serde_json::to_string(&config) {
-            Ok(b) => b,
-            Err(e) => {
-                error!(&format!("Failed to serialize git config: {}", e));
-                if let Some(cb) = callback {
-                    cb(Err(format!("Failed to serialize config: {}", e)));
-                }
-                return;
-            }
-        };
-        
-        let req = Request::post(&url)
-            .header("Authorization", &auth)
-            .header("Content-Type", "application/json")
-            .body(body);
-        
-        let response = match req {
-            Ok(r) => r.send().await,
-            Err(e) => {
-                error!(&format!("Failed to build request: {:?}", e));
-                if let Some(cb) = callback {
-                    cb(Err("Failed to build request".to_string()));
-                }
-                return;
-            }
-        };
-        
-        match response {
-            Ok(response) => {
-                // Check for authentication errors first
-                if handle_auth_error(response.status()) {
-                    if let Some(cb) = callback {
-                        cb(Err("Authentication failed".to_string()));
-                    }
-                    return;
-                }
-                
-                match response.json::<GitStatus>().await {
-                    Ok(status) => {
-                        log!(&format!("Git setup result: {}", status.message));
-                        if let Some(cb) = callback {
-                            cb(Ok(status));
-                        } else {
-                            reload();
-                        }
-                    }
-                    Err(e) => {
-                        error!(&format!("Failed to parse response: {:?}", e));
-                        if let Some(cb) = callback {
-                            cb(Err("Failed to parse response".to_string()));
-                        }
-                    }
-                }
-            }
-            Err(e) => {
-                error!(&format!("Request failed: {:?}", e));
-                if let Some(cb) = callback {
-                    cb(Err("Request failed".to_string()));
-                }
-            }
-        }
-    });
+    match serialize_body(&config) {
+        Ok(body) => client::spawn_request(Method::Post, "/api/git/setup".into(), Some(body), callback),
+        Err(e) => { if let Some(cb) = callback { cb(Err(e)); } }
+    }
 }
 
 pub fn api_git_test(config: GitRepoConfig, callback: Option<impl Fn(Result<GitStatus, String>) + 'static>) {
-    let auth = get_token();
-
-    spawn_local(async move {
-        let url = "/api/git/test";
-        let body = match serde_json::to_string(&config) {
-            Ok(b) => b,
-            Err(e) => {
-                error!(&format!("Failed to serialize git config: {}", e));
-                if let Some(cb) = callback {
-                    cb(Err(format!("Failed to serialize config: {}", e)));
-                }
-                return;
-            }
-        };
-        
-        let req = Request::post(&url)
-            .header("Authorization", &auth)
-            .header("Content-Type", "application/json")
-            .body(body);
-        
-        let response = match req {
-            Ok(r) => r.send().await,
-            Err(e) => {
-                error!(&format!("Failed to build test request: {:?}", e));
-                if let Some(cb) = callback {
-                    cb(Err("Failed to build request".to_string()));
-                }
-                return;
-            }
-        };
-        
-        match response {
-            Ok(response) => {
-                // Check for authentication errors first
-                if handle_auth_error(response.status()) {
-                    if let Some(cb) = callback {
-                        cb(Err("Authentication failed".to_string()));
-                    }
-                    return;
-                }
-                
-                match response.json::<GitStatus>().await {
-                    Ok(status) => {
-                        log!(&format!("Git test result: {}", status.message));
-                        if let Some(cb) = callback {
-                            cb(Ok(status));
-                        }
-                    }
-                    Err(e) => {
-                        error!(&format!("Failed to parse test response: {:?}", e));
-                        if let Some(cb) = callback {
-                            cb(Err("Failed to parse response".to_string()));
-                        }
-                    }
-                }
-            }
-            Err(e) => {
-                error!(&format!("Test request failed: {:?}", e));
-                if let Some(cb) = callback {
-                    cb(Err("Request failed".to_string()));
-                }
-            }
-        }
-    });
+    match serialize_body(&config) {
+        Ok(body) => client::spawn_request(Method::Post, "/api/git/test".into(), Some(body), callback),
+        Err(e) => { if let Some(cb) = callback { cb(Err(e)); } }
+    }
 }
 
 pub fn api_git_pull(callback: Option<impl Fn(Result<GitStatus, String>) + 'static>) {
-    let auth = get_token();
-
-    spawn_local(async move {
-        let url = "/api/git/pull";
-        
-        let req = Request::post(&url)
-            .header("Authorization", &auth);
-        
-        match req.send().await {
-            Ok(response) => {
-                // Check for authentication errors first
-                if handle_auth_error(response.status()) {
-                    if let Some(cb) = callback {
-                        cb(Err("Authentication failed".to_string()));
-                    }
-                    return;
-                }
-                
-                match response.json::<GitStatus>().await {
-                    Ok(status) => {
-                        log!(&format!("Git pull result: {}", status.message));
-                        if let Some(cb) = callback {
-                            cb(Ok(status));
-                        } else {
-                            reload();
-                        }
-                    }
-                    Err(e) => {
-                        error!(&format!("Failed to parse pull response: {:?}", e));
-                        if let Some(cb) = callback {
-                            cb(Err("Failed to parse response".to_string()));
-                        }
-                    }
-                }
-            }
-            Err(e) => {
-                error!(&format!("Pull request failed: {:?}", e));
-                if let Some(cb) = callback {
-                    cb(Err("Request failed".to_string()));
-                }
-            }
-        }
-    });
+    client::spawn_request(Method::Post, "/api/git/pull".into(), None, callback);
 }
 
 pub fn api_get_git_status(callback: Option<impl Fn(Result<GitRepoStatus, String>) + 'static>) {
-    let auth = get_token();
-
-    spawn_local(async move {
-        let url = "/api/git/status";
-        
-        let req = Request::get(&url)
-            .header("Authorization", &auth);
-        
-        match req.send().await {
-            Ok(response) => {
-                // Check for authentication errors first
-                if handle_auth_error(response.status()) {
-                    if let Some(cb) = callback {
-                        cb(Err("Authentication failed".to_string()));
-                    }
-                    return;
-                }
-                
-                match response.json::<GitRepoStatus>().await {
-                    Ok(status) => {
-                        log!(&format!("Git status result: has_changes={}, behind={}, ahead={}", 
-                                      status.has_changes, status.behind_count, status.ahead_count));
-                        if let Some(cb) = callback {
-                            cb(Ok(status));
-                        }
-                    }
-                    Err(e) => {
-                        error!(&format!("Failed to parse git status response: {:?}", e));
-                        if let Some(cb) = callback {
-                            cb(Err("Failed to parse response".to_string()));
-                        }
-                    }
-                }
-            }
-            Err(e) => {
-                error!(&format!("Git status request failed: {:?}", e));
-                if let Some(cb) = callback {
-                    cb(Err("Request failed".to_string()));
-                }
-            }
-        }
-    });
+    client::spawn_request(Method::Get, "/api/git/status".into(), None, callback);
 }
 
 pub fn api_commit_changes(message: String, callback: Option<impl Fn(Result<GitStatus, String>) + 'static>) {
-    let auth = get_token();
-
-    spawn_local(async move {
-        let url = "/api/git/commit";
-        let request = CommitRequest { message };
-        let body = match serde_json::to_string(&request) {
-            Ok(b) => b,
-            Err(e) => {
-                error!(&format!("Failed to serialize commit request: {}", e));
-                if let Some(cb) = callback {
-                    cb(Err(format!("Failed to serialize request: {}", e)));
-                }
-                return;
-            }
-        };
-        
-        let req = Request::post(&url)
-            .header("Authorization", &auth)
-            .header("Content-Type", "application/json")
-            .body(body);
-        
-        let response = match req {
-            Ok(r) => r.send().await,
-            Err(e) => {
-                error!(&format!("Failed to build commit request: {:?}", e));
-                if let Some(cb) = callback {
-                    cb(Err("Failed to build request".to_string()));
-                }
-                return;
-            }
-        };
-        
-        match response {
-            Ok(response) => {
-                // Check for authentication errors first
-                if handle_auth_error(response.status()) {
-                    if let Some(cb) = callback {
-                        cb(Err("Authentication failed".to_string()));
-                    }
-                    return;
-                }
-                
-                match response.json::<GitStatus>().await {
-                    Ok(status) => {
-                        log!(&format!("Commit result: {}", status.message));
-                        if let Some(cb) = callback {
-                            cb(Ok(status));
-                        }
-                    }
-                    Err(e) => {
-                        error!(&format!("Failed to parse commit response: {:?}", e));
-                        if let Some(cb) = callback {
-                            cb(Err("Failed to parse response".to_string()));
-                        }
-                    }
-                }
-            }
-            Err(e) => {
-                error!(&format!("Commit request failed: {:?}", e));
-                if let Some(cb) = callback {
-                    cb(Err("Request failed".to_string()));
-                }
-            }
-        }
-    });
+    match serialize_body(&CommitRequest { message }) {
+        Ok(body) => client::spawn_request(Method::Post, "/api/git/commit".into(), Some(body), callback),
+        Err(e) => { if let Some(cb) = callback { cb(Err(e)); } }
+    }
 }
 
 pub fn api_push_changes(callback: Option<impl Fn(Result<GitStatus, String>) + 'static>) {
-    let auth = get_token();
-
-    spawn_local(async move {
-        let url = "/api/git/push";
-        
-        let req = Request::post(&url)
-            .header("Authorization", &auth);
-        
-        match req.send().await {
-            Ok(response) => {
-                // Check for authentication errors first
-                if handle_auth_error(response.status()) {
-                    if let Some(cb) = callback {
-                        cb(Err("Authentication failed".to_string()));
-                    }
-                    return;
-                }
-                
-                match response.json::<GitStatus>().await {
-                    Ok(status) => {
-                        log!(&format!("Push result: {}", status.message));
-                        if let Some(cb) = callback {
-                            cb(Ok(status));
-                        }
-                    }
-                    Err(e) => {
-                        error!(&format!("Failed to parse push response: {:?}", e));
-                        if let Some(cb) = callback {
-                            cb(Err("Failed to parse response".to_string()));
-                        }
-                    }
-                }
-            }
-            Err(e) => {
-                error!(&format!("Push request failed: {:?}", e));
-                if let Some(cb) = callback {
-                    cb(Err("Request failed".to_string()));
-                }
-            }
-        }
-    });
+    client::spawn_request(Method::Post, "/api/git/push".into(), None, callback);
 }
 
 pub fn api_force_pull(callback: Option<impl Fn(Result<GitStatus, String>) + 'static>) {
-    let auth = get_token();
-
-    spawn_local(async move {
-        let url = "/api/git/force-pull";
-        
-        let req = Request::post(&url)
-            .header("Authorization", &auth);
-        
-        match req.send().await {
-            Ok(response) => {
-                // Check for authentication errors first
-                if handle_auth_error(response.status()) {
-                    if let Some(cb) = callback {
-                        cb(Err("Authentication failed".to_string()));
-                    }
-                    return;
-                }
-                
-                match response.json::<GitStatus>().await {
-                    Ok(status) => {
-                        log!(&format!("Force pull result: {}", status.message));
-                        if let Some(cb) = callback {
-                            cb(Ok(status));
-                        } else {
-                            reload();
-                        }
-                    }
-                    Err(e) => {
-                        error!(&format!("Failed to parse force pull response: {:?}", e));
-                        if let Some(cb) = callback {
-                            cb(Err("Failed to parse response".to_string()));
-                        }
-                    }
-                }
-            }
-            Err(e) => {
-                error!(&format!("Force pull request failed: {:?}", e));
-                if let Some(cb) = callback {
-                    cb(Err("Request failed".to_string()));
-                }
-            }
-        }
-    });
+    client::spawn_request(Method::Post, "/api/git/force-pull".into(), None, callback);
 }
 
 pub fn api_get_auto_pull_config(callback: Option<impl Fn(Result<AutoPullConfig, String>) + 'static>) {
-    let auth = get_token();
-
-    spawn_local(async move {
-        let url = "/api/git/auto-pull";
-        
-        let req = Request::get(&url)
-            .header("Authorization", &auth);
-        
-        match req.send().await {
-            Ok(response) => {
-                // Check for authentication errors first
-                if handle_auth_error(response.status()) {
-                    if let Some(cb) = callback {
-                        cb(Err("Authentication failed".to_string()));
-                    }
-                    return;
-                }
-                
-                match response.json::<AutoPullConfig>().await {
-                    Ok(config) => {
-                        log!(&format!("Auto-pull config retrieved: enabled={}, interval={}min", config.enabled, config.interval_minutes));
-                        if let Some(cb) = callback {
-                            cb(Ok(config));
-                        }
-                    }
-                    Err(e) => {
-                        error!(&format!("Failed to parse auto-pull config response: {:?}", e));
-                        if let Some(cb) = callback {
-                            cb(Err("Failed to parse response".to_string()));
-                        }
-                    }
-                }
-            }
-            Err(e) => {
-                error!(&format!("Auto-pull config request failed: {:?}", e));
-                if let Some(cb) = callback {
-                    cb(Err("Request failed".to_string()));
-                }
-            }
-        }
-    });
+    client::spawn_request(Method::Get, "/api/git/auto-pull".into(), None, callback);
 }
 
 pub fn api_set_auto_pull_config(config: AutoPullConfig, callback: Option<impl Fn(Result<GitStatus, String>) + 'static>) {
-    let auth = get_token();
-
-    spawn_local(async move {
-        let url = "/api/git/auto-pull";
-        let body = match serde_json::to_string(&config) {
-            Ok(b) => b,
-            Err(e) => {
-                error!(&format!("Failed to serialize auto-pull config: {}", e));
-                if let Some(cb) = callback {
-                    cb(Err(format!("Failed to serialize config: {}", e)));
-                }
-                return;
-            }
-        };
-        
-        let req = Request::post(&url)
-            .header("Authorization", &auth)
-            .header("Content-Type", "application/json")
-            .body(body);
-        
-        let response = match req {
-            Ok(r) => r.send().await,
-            Err(e) => {
-                error!(&format!("Failed to build auto-pull config request: {:?}", e));
-                if let Some(cb) = callback {
-                    cb(Err("Failed to build request".to_string()));
-                }
-                return;
-            }
-        };
-        
-        match response {
-            Ok(response) => {
-                // Check for authentication errors first
-                if handle_auth_error(response.status()) {
-                    if let Some(cb) = callback {
-                        cb(Err("Authentication failed".to_string()));
-                    }
-                    return;
-                }
-                
-                match response.json::<GitStatus>().await {
-                    Ok(status) => {
-                        log!(&format!("Auto-pull config result: {}", status.message));
-                        if let Some(cb) = callback {
-                            cb(Ok(status));
-                        }
-                    }
-                    Err(e) => {
-                        error!(&format!("Failed to parse auto-pull config response: {:?}", e));
-                        if let Some(cb) = callback {
-                            cb(Err("Failed to parse response".to_string()));
-                        }
-                    }
-                }
-            }
-            Err(e) => {
-                error!(&format!("Auto-pull config request failed: {:?}", e));
-                if let Some(cb) = callback {
-                    cb(Err("Request failed".to_string()));
-                }
-            }
-        }
-    });
+    match serialize_body(&config) {
+        Ok(body) => client::spawn_request(Method::Post, "/api/git/auto-pull".into(), Some(body), callback),
+        Err(e) => { if let Some(cb) = callback { cb(Err(e)); } }
+    }
 }

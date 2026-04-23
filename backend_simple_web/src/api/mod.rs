@@ -1,5 +1,6 @@
 // backend_simple_web/src/api/mod.rs
-
+pub mod error;
+pub mod path;
 pub mod files;
 pub mod upload;
 pub mod move_ops;

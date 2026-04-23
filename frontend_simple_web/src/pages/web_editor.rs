@@ -33,10 +33,10 @@ pub fn web_editor() -> Html {
                 </div>
                 <div class="flex gap-2">
                     <button class="btn btn-danger text-sm" onclick={logout_callback}>
-                        { "🚪 Logout" }
+                        { "Logout" }
                     </button>
                     <Link<Route> to={Route::Settings} classes="btn btn-secondary text-sm">
-                        { "⚙️ Settings" }
+                        { "Settings" }
                     </Link<Route>>
                 </div>
             </header>

@@ -2,61 +2,16 @@
 use rocket::http::Status;
 use rocket::serde::{json::Json, Deserialize};
 use rocket::tokio::fs;
-use std::path::{Path, PathBuf};
 
 use prisma_auth::backend::AuthGuard as Admin;
-use super::{ROOT, clean};
+use super::error::AppError;
+use super::path::ValidatedPath;
 
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
 pub struct FileMove {
     from: String,
     to: String,
-}
-
-/// For files/dirs that must already exist on disk.
-async fn resolve_src(rel: &str) -> Result<PathBuf, Status> {
-    let cleaned = clean(rel);
-    if cleaned.is_empty() {
-        return Err(Status::BadRequest);
-    }
-
-    let full = Path::new(ROOT).join(&cleaned);
-    let canon = fs::canonicalize(&full)
-        .await
-        .map_err(|_| Status::BadRequest)?;
-    let root_canon = fs::canonicalize(ROOT)
-        .await
-        .map_err(|_| Status::InternalServerError)?;
-
-    if !canon.starts_with(&root_canon) {
-        return Err(Status::BadRequest);
-    }
-    Ok(canon)
-}
-
-/// For a new or moved-to path: ensure its parent is valid, but allow the file itself to not exist.
-async fn resolve_dst(rel: &str) -> Result<PathBuf, Status> {
-    let cleaned = clean(rel);
-    if cleaned.is_empty() {
-        return Err(Status::BadRequest);
-    }
-
-    let full = Path::new(ROOT).join(&cleaned);
-    let parent = full.parent().ok_or(Status::BadRequest)?;
-
-    let parent_canon = fs::canonicalize(parent)
-        .await
-        .map_err(|_| Status::BadRequest)?;
-    let root_canon = fs::canonicalize(ROOT)
-        .await
-        .map_err(|_| Status::InternalServerError)?;
-
-    if !parent_canon.starts_with(&root_canon) {
-        return Err(Status::BadRequest);
-    }
-
-    Ok(full)
 }
 
 /// Move a file or directory
@@ -66,22 +21,24 @@ async fn resolve_dst(rel: &str) -> Result<PathBuf, Status> {
 /// ### Examples:
 /// - POST /api/move  JSON ```{"from":"old.html","to":"new.html"}```
 #[post("/move", data = "<payload>")]
-pub async fn move_entry(payload: Json<FileMove>, _admin: Admin) -> Result<Status, Status> {
-    let src = resolve_src(&payload.from).await?;
-    let dst = resolve_dst(&payload.to).await?;
+pub async fn move_entry(payload: Json<FileMove>, _admin: Admin) -> Result<Status, AppError> {
+    let src = ValidatedPath::existing(&payload.from).await?;
+    let dst = ValidatedPath::new_destination(&payload.to)?;
 
-    // Prevent moving a directory *inside itself* (would loop forever)
-    if src.is_dir() && dst.starts_with(&src) {
-        return Err(Status::BadRequest);
+    // Prevent moving a directory inside itself
+    if src.as_path().is_dir() && dst.as_path().starts_with(src.as_path()) {
+        return Err(AppError::BadRequest("Cannot move a directory inside itself".into()));
     }
 
-    if let Some(parent) = dst.parent() {
-        fs::create_dir_all(parent).await.ok();
+    if let Some(parent) = dst.as_path().parent() {
+        fs::create_dir_all(parent).await.map_err(|e| {
+            AppError::Internal(format!("Failed to create directory {:?}: {}", parent, e))
+        })?;
     }
 
-    fs::rename(&src, &dst)
+    fs::rename(src.as_path(), dst.as_path())
         .await
-        .map_err(|_| Status::InternalServerError)?;
+        .map_err(|e| AppError::Internal(format!("Failed to move: {}", e)))?;
 
     Ok(Status::Ok)
 }

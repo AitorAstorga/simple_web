@@ -1,5 +1,6 @@
 mod api;
 mod components;
+mod hooks;
 mod pages;
 mod router;
 mod config_file;
